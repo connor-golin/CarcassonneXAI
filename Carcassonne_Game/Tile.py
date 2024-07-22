@@ -195,7 +195,7 @@ class AvailableMove:
         self.Rotation = Rotation
         self.MeepleInfo = MeepleInfo
         self.move = (TileIndex, X, Y, Rotation, MeepleInfo)
-        self.moveString = f'({TileIndex}, {X}, {Y}, {Rotation}, {MeepleInfo})'
+        self.moveString = f'(TileIndex: {TileIndex}, X: {X}, Y: {Y}, Rotation: {Rotation}, Meeples: {MeepleInfo})'
         
     def __repr__(self):
         if self.MeepleInfo is not None:

@@ -22,9 +22,9 @@ BROWN = (92, 64, 51)
 
 # game grid
 GRID = [21,17] 
-GRID_SIZE = 40
-GRID_WINDOW_WIDTH = GRID[0]*GRID_SIZE
-GRID_WINDOW_HEIGHT = GRID[1]*GRID_SIZE
+GRID_SIZE = 60 # 40
+GRID_WINDOW_WIDTH = GRID[0] * GRID_SIZE
+GRID_WINDOW_HEIGHT = GRID[1] * GRID_SIZE
 GRID_BORDER = 80
 
 # meeple size
@@ -75,7 +75,7 @@ class displayScreen:
         self.Window_Width =  self.Total_Grid_Width + self.Menu_Width
     
         # display
-        self.pygameDisplay = pygame.display.set_mode((self.Window_Width, self.Window_Height))
+        self.pygameDisplay = pygame.display.set_mode(size=(self.Window_Width, self.Window_Height))
         
         
         
