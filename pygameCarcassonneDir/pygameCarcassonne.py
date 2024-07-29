@@ -129,7 +129,6 @@ def FinalMenu(Carcassonne):
     menu.add.button("Quit", pygame_menu.events.EXIT)
     menu.mainloop(surface)
 
-
 # main game loop
 def PlayGame(p1, p2):
     global GAME_DISPLAY, CLOCK
@@ -218,18 +217,16 @@ def PlayGame(p1, p2):
                             NT.moveLabel = pygame.Surface(
                                 (DisplayScreen.Window_Width, 50)
                             )
-                            print(f"Scores: {Carcassonne.FeatureScores}")
                             isStartOfTurn = True
                             hasSomethingNew = True
                             isStartOfGame = False
+                            pygame.time.set_timer(AI_MOVE_EVENT, 1)
                         elif (X, Y) in list(NT.Carcassonne.Board.keys()):
                             print("check")
                             text = NT.displayTextClickedTile(X, Y)
                             print(text)
                         else:
-                            print(f"X: {X}")
-                            print(f"Y: {Y}")
-                            print("invalid")
+                            print(f"Position invalid: X: {X}, Y:{Y}")
                     isGameOver = Carcassonne.isGameOver
                     if isGameOver:
                         isStartOfTurn = False
