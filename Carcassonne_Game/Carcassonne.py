@@ -416,7 +416,7 @@ class CarcassonneState:
         #print(f'VIRTUAL POINTS: \nPlayer1: {self.Scores[2]}, Player2: {self.Scores[3]} \n')
         
     
-    def nextTileIndex(self):
+    def nextTileIndex(self, *args):
         """
         Returns index of next tile from the deck
         """
