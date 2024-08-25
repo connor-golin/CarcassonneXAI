@@ -444,7 +444,7 @@ class CarcassonneState:
         X,Y = Move[1], Move[2]
         Rotation = Move[3]
         MeepleKey = Move[4]
-        
+
         # fix for when the game chooses a tile after the end of game
         if PlayingTileIndex == -1:
             self.EndGameRoutine()

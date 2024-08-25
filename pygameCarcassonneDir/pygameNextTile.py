@@ -70,13 +70,9 @@ class nextTile:
     def __init__(self, Carcassonne, displayScreen, RunInit=True, *args):
         self.Carcassonne = Carcassonne
 
-        print(f"args: {args[0]}\n")
-        if args:
-            self.nextTileIndex = args[0]
-            self.Tile = Tile(args[0], RunInit)
-        else:
-            self.nextTileIndex = self.Carcassonne.nextTileIndex()
-            self.Tile = Tile(self.nextTileIndex, RunInit)
+
+        self.nextTileIndex = self.Carcassonne.nextTileIndex()
+        self.Tile = Tile(self.nextTileIndex, RunInit)
 
         if self.nextTileIndex == -1:  # no more tiles left
             RunInit = False
@@ -210,11 +206,13 @@ class nextTile:
         """
         Return a list of all playable coordinates for the current tile
         """
+
         availableMoves = self.Carcassonne.availableMoves()
         coordinates = []
 
         for move in availableMoves:
             MeepleInfo = move.MeepleInfo
+            print(f"meeple info: {MeepleInfo}")
             if MeepleInfo == self.Meeple:
                 if move.Rotation == (self.Rotated * 90):
                     coordinates.append((move.X, move.Y))

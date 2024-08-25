@@ -5,18 +5,29 @@ import pickle
 
 sys.path.append(os.path.join(os.getcwd()))
 
+from pygameCarcassonneDir.pygameLabel import Label
+from pygameCarcassonneDir.pygameNextTile import FEATURE_DICT, MEEPLE_LOCATION_DICT_SCALED
 from Carcassonne_Game.Carcassonne import CarcassonneState
-from Carcassonne_Game.Tile import Tile
+from Carcassonne_Game.Tile import AvailableMove, Tile
 from player.Player import HumanPlayer
 from pygameCarcassonneDir.pygameFunctions import (
     drawGrid,
     diplayGameBoard,
     get_clicked_X,
     get_clicked_Y,
+    meepleCoordinates,
     placeColourTile,
     printTilesLeft,
 )
 from pygameCarcassonneDir.pygameSettings import (
+    BROWN,
+    FONT_MEEPLE_IMAGE,
+    FONT_MEEPLE_MENU,
+    MEEPLE_CHOICE_HIGHLIGHT,
+    MEEPLE_LABEL_SHIFT_X,
+    MEEPLE_LABEL_SHIFT_Y,
+    MEEPLE_LABEL_X,
+    MEEPLE_LABEL_Y,
     displayScreen,
     GRID,
     GRID_SIZE,
@@ -24,6 +35,14 @@ from pygameCarcassonneDir.pygameSettings import (
     MENU_WIDTH,
     MEEPLE_SIZE,
 )
+
+name_mapping = {
+    'R': "Road",
+    'G': "Grass",
+    'C': "City",
+    'M': "Monastery",
+    'Monastery': 'Monastery'
+}
 
 pygame.init()
 
@@ -86,7 +105,7 @@ def draw_tile_selection(GAME_DISPLAY, tile_images, current_tile_index, Carcasson
 
 
 def draw_current_tile(
-    GAME_DISPLAY, DisplayScreen, tile_images, current_tile_index, rotation
+    GAME_DISPLAY, DisplayScreen, tile_images, current_tile_index, rotation,
 ):
     w, h = pygame.display.get_surface().get_size()
     total_tile_width = TILES_PER_ROW * TILE_SIZE + (TILES_PER_ROW - 1) * MARGIN
@@ -111,6 +130,18 @@ def draw_current_tile(
         ),
     )
 
+def possibleCoordinatesMeeples(Carcassonne, Meeple, rotation, tile_index):
+        """
+        Return a list of all playable coordinates for the current tile
+        """
+        availableMoves = Carcassonne.availableMoves(False, tile_index) # False so it considers meeple info
+        coordinates = []
+        for move in availableMoves:
+            MeepleInfo = move.MeepleInfo
+            if MeepleInfo == Meeple:
+                if move.Rotation == (rotation * 90):
+                    coordinates.append((move.X, move.Y))
+        return coordinates
 
 def get_clicked_tile(pos):
     x, y = pos
@@ -137,7 +168,6 @@ def get_clicked_tile(pos):
         return index
 
     return None
-
 
 def draw_buttons(GAME_DISPLAY, DisplayScreen):
     w, h = pygame.display.get_surface().get_size()
@@ -187,11 +217,9 @@ def draw_buttons(GAME_DISPLAY, DisplayScreen):
 
     return save_rect, load_rect
 
-
 def save_game_state(Carcassonne):
     with open("board_state.pkl", "wb") as f:
         pickle.dump(Carcassonne, f)
-
 
 def load_game_state(DisplayScreen):
     try:
@@ -201,7 +229,6 @@ def load_game_state(DisplayScreen):
     except FileNotFoundError:
         print("No saved game state found.")
         return None
-
 
 def possibleCoordinates(carcassonne, tile_index, rotation):
     """
@@ -216,7 +243,6 @@ def possibleCoordinates(carcassonne, tile_index, rotation):
             coordinates.append((move.X, move.Y))
     return coordinates
 
-
 def highlightPossibleMoves(carcassonne, tile_index, rotation, DisplayScreen):
     """
     Highlight on the grid where the player can place the next tile
@@ -225,15 +251,113 @@ def highlightPossibleMoves(carcassonne, tile_index, rotation, DisplayScreen):
         # all possible moves
         placeColourTile(X, Y, DisplayScreen, pygame.Color(0, 0, 255))
 
+def addMeepleLocations(
+        location_key, Location, NumberKey, numberSelected, tile
+    ):
+        """
+        Add meeples or meeple locations to tile
+        """
+        Feature = location_key[0]
+        circleColour = WHITE
+        background = None
+        thickness = 2
+
+        # change colour for selected meeple location
+        if NumberKey == numberSelected:
+            if NumberKey == 0:
+                background = None
+                Meeple = None
+                thickness = 2
+            else:
+                background = MEEPLE_CHOICE_HIGHLIGHT
+                circleColour = MEEPLE_CHOICE_HIGHLIGHT
+                Meeple = location_key
+                thickness = 0
+
+        text = str(NumberKey)
+        X, Y = meepleCoordinates(
+            Location, Feature, MEEPLE_LOCATION_DICT_SCALED, tile.TileIndex
+        )
+
+        # image label
+        meepleLabelImage = Label(
+            text, font_size=FONT_MEEPLE_IMAGE, background=background
+        )
+        image = pygame.image.load(tile.image)
+        pygame.draw.circle(image, circleColour, (X + 7, Y + 12), 16, thickness)
+        image.blit(meepleLabelImage.text_surface, (X, Y))
+
+def updateMeepleMenu(meepleLabel, location_key, Location, NumberKey, numberSelected):
+        Feature = location_key[0]
+        background = background0 = WHITE
+
+        # change colour for selected meeple location
+        if NumberKey == numberSelected:
+            background = MEEPLE_CHOICE_HIGHLIGHT
+
+        if numberSelected == 0:
+            background0 = MEEPLE_CHOICE_HIGHLIGHT
+
+        # each label has a "No Meeple Option"
+        text = "0. No Meeple"
+        meepleInfoLabel = Label(
+            text, font_size=FONT_MEEPLE_MENU, background=background0
+        )
+        meepleLabel.blit(
+            meepleInfoLabel.text_surface,
+            (MEEPLE_LABEL_X, MEEPLE_LABEL_Y - MEEPLE_LABEL_SHIFT_Y),
+        )
+
+        # info label
+        x = MEEPLE_LABEL_X
+        y = MEEPLE_LABEL_Y
+
+        # rows
+        shiftY = MEEPLE_LABEL_SHIFT_Y * ((NumberKey - 1) % 4)
+        y += shiftY
+
+        # next column
+        shiftX = 0 if NumberKey < 5 else MEEPLE_LABEL_SHIFT_X
+        x += shiftX
+
+        # create label
+        text = str(NumberKey) + ". " + str(FEATURE_DICT[Feature])
+        meepleInfoLabel = Label(text, font_size=FONT_MEEPLE_MENU, background=background)
+        meepleLabel.blit(meepleInfoLabel.text_surface, (x, y))
+
+def printMeepleLocations(tile):
+    available = tile.AvailableMeepleLocs
+    
+    print("\nAvailable meeple locations:")
+    for i in range(len(available)):
+        print(f"{i + 1} : {name_mapping[list(available.keys())[i][0]]}")
 
 def main():
     DisplayScreen, GAME_DISPLAY, Carcassonne, tile_images = initialize_game()
 
+    # init tile
     current_tile_index = 16
+    tile = Tile(current_tile_index)
+    printMeepleLocations(tile)
+
     rotation = 0
     meeple = None
     running = True
+
+    meepleRect = (0, 0, 300, 160)
+    meepleLabel = pygame.Surface(pygame.Rect(meepleRect).size)
+    meepleLabel.set_alpha(165)
+    text = "0. No Meeple"
+    meepleInfoLabel = Label(
+        text, font_size=FONT_MEEPLE_MENU, background=WHITE
+    )
+    meepleLabel.blit(
+         meepleInfoLabel.text_surface,
+         (MEEPLE_LABEL_X, MEEPLE_LABEL_Y - MEEPLE_LABEL_SHIFT_Y),
+     )
+
     while running:
+
         rotation = rotation % 4
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -254,20 +378,25 @@ def main():
                         current_tile_index = clicked_tile
                         rotation = 0
                         meeple = None
+                        tile = Tile(current_tile_index)
+                        printMeepleLocations(tile)
                     else:
                         X, Y = get_clicked_X(
                             pygame.mouse.get_pos(), DisplayScreen
                         ), get_clicked_Y(pygame.mouse.get_pos(), DisplayScreen)
+                        
                         move_tuple = (current_tile_index, X, Y, rotation * 90, meeple)
                         count = Carcassonne.TileQuantities[current_tile_index]
+                        # updateMeepleMenu(meepleLabel, location_key, location_value, i, meeple)
                         if count <= 0:
                             print(
                                 f"No tiles of index: '{current_tile_index}' remaining."
                             )
                             continue
-                        if (X, Y) in possibleCoordinates(
-                            Carcassonne, current_tile_index, rotation
-                        ):
+                        if (X, Y) not in possibleCoordinatesMeeples(Carcassonne, meeple, rotation, current_tile_index):
+                            print("Meeple cannot be placed here!")
+                            continue
+                        if (X, Y) in possibleCoordinates(Carcassonne, current_tile_index, rotation):
                             Carcassonne.move(move_tuple)
                         else:
                             print("Invalid location pressed")
@@ -277,7 +406,7 @@ def main():
                     rotation -= 1
                 elif event.key == pygame.K_RIGHT:
                     rotation += 1
-                elif event.key in [ # TODO: reimplement meeples
+                elif event.key in [
                     pygame.K_0,
                     pygame.K_1,
                     pygame.K_2,
@@ -286,9 +415,34 @@ def main():
                     pygame.K_5,
                     pygame.K_6,
                     pygame.K_7,
+                    pygame.K_8,
+                    pygame.K_9
                 ]:
-                    meeple = int(pygame.key.name(event.key))
-                    meeple = meeple if meeple != 0 else None
+                    meeple = int(pygame.key.name(event.key)) # cast to int
+                    meeple = meeple - 1 if meeple != 0 else None # make 0 == None for no meeple
+                    
+                    if meeple and meeple >= len(tile.AvailableMeepleLocs):
+                        print(f"Meeple index {meeple + 1} is not available. Available range: 0-{len(tile.AvailableMeepleLocs)}")
+                        continue
+                    print(f"Meeple location at index {meeple + 1} selected: {name_mapping[list(tile.AvailableMeepleLocs.keys())[meeple][0]]}")
+
+                    i = 1
+                    for location_key in tile.AvailableMeepleLocs:
+                        location_value = tile.AvailableMeepleLocs[location_key]
+
+                        keys = list(tile.AvailableMeepleLocs.keys())
+
+                        addMeepleLocations(
+                            location_key,
+                            location_value,
+                            i,
+                            keys[meeple],
+                            tile
+                        )
+                        updateMeepleMenu(meepleLabel, location_key, location_value, i, keys[meeple])
+                        i += 1
+                    
+                    meeple = keys[meeple]
 
         GAME_DISPLAY.fill(WHITE)
 
@@ -307,6 +461,7 @@ def main():
         )  # Draw buttons once per frame
         printTilesLeft(Carcassonne, DisplayScreen)
         highlightPossibleMoves(Carcassonne, current_tile_index, rotation, DisplayScreen)
+        # GAME_DISPLAY.blit(meepleLabel, (0, 0)) 
         pygame.display.flip()
 
     pygame.quit()
