@@ -1,68 +1,63 @@
+import json
 import pygame
 import sys
 import os
 import pickle
+from typing import Dict, List, Tuple
 
-sys.path.append(os.path.join(os.getcwd()))
 
+sys.path.append(os.getcwd())
+
+from pygameCarcassonneDir.pygameFunctions import diplayGameBoard, drawGrid, get_clicked_X, get_clicked_Y, meepleCoordinates, placeColourTile, printTilesLeft
 from pygameCarcassonneDir.pygameLabel import Label
-from pygameCarcassonneDir.pygameNextTile import (
-    FEATURE_DICT,
-    MEEPLE_LOCATION_DICT_SCALED,
-)
+from pygameCarcassonneDir import pygameNextTile, pygameSettings
 from Carcassonne_Game.Carcassonne import CarcassonneState
-from Carcassonne_Game.Tile import AvailableMove, Tile
+from Carcassonne_Game.Tile import Tile
 from player.Player import HumanPlayer
-from pygameCarcassonneDir.pygameFunctions import (
-    drawGrid,
-    diplayGameBoard,
-    get_clicked_X,
-    get_clicked_Y,
-    meepleCoordinates,
-    placeColourTile,
-    printTilesLeft,
-)
-from pygameCarcassonneDir.pygameSettings import (
-    BROWN,
-    FONT_MEEPLE_IMAGE,
-    FONT_MEEPLE_MENU,
-    MEEPLE_CHOICE_HIGHLIGHT,
-    MEEPLE_LABEL_SHIFT_X,
-    MEEPLE_LABEL_SHIFT_Y,
-    MEEPLE_LABEL_X,
-    MEEPLE_LABEL_Y,
-    displayScreen,
-    GRID,
-    GRID_SIZE,
-    GRID_BORDER,
-    MENU_WIDTH,
-    MEEPLE_SIZE,
-)
 
-name_mapping = {
-    "R": "Road",
-    "G": "Grass",
-    "C": "City",
-    "M": "Monastery",
-    "Monastery": "Monastery",
-}
+# Load config file
+with open('xai/config.json', 'r') as config_file:
+    config = json.load(config_file)
 
+# Config Types
+NameMapping = Dict[str, str]
+Players = List[str]
+PlayerColors = Dict[str, Tuple[int, int, int]]
+
+# Config Variables
+name_mapping: NameMapping = config['name_mapping']
+players: Players = config['players']
+player_colors: PlayerColors = {k: tuple(v) for k, v in config['player_colors'].items()}
+WHITE: Tuple[int, int, int] = tuple(config['WHITE'])
+BLACK: Tuple[int, int, int] = tuple(config['BLACK'])
+TILE_SIZE: int = config['TILE_SIZE']
+TILES_PER_ROW: int = config['TILES_PER_ROW']
+MARGIN: int = config['MARGIN']
+Y_OFFSET: int = config['Y_OFFSET']
+
+# Constants from pygameNextTile
+FEATURE_DICT = pygameNextTile.FEATURE_DICT
+MEEPLE_LOCATION_DICT_SCALED = pygameNextTile.MEEPLE_LOCATION_DICT_SCALED
+
+# Constants from pygameSettings
+FONT_MEEPLE_IMAGE = pygameSettings.FONT_MEEPLE_IMAGE
+FONT_MEEPLE_MENU = pygameSettings.FONT_MEEPLE_MENU
+MEEPLE_CHOICE_HIGHLIGHT = pygameSettings.MEEPLE_CHOICE_HIGHLIGHT
+MEEPLE_LABEL_SHIFT_X = pygameSettings.MEEPLE_LABEL_SHIFT_X
+MEEPLE_LABEL_SHIFT_Y = pygameSettings.MEEPLE_LABEL_SHIFT_Y
+MEEPLE_LABEL_X = pygameSettings.MEEPLE_LABEL_X
+MEEPLE_LABEL_Y = pygameSettings.MEEPLE_LABEL_Y
+GRID = pygameSettings.GRID
+MEEPLE_SIZE = pygameSettings.MEEPLE_SIZE
+
+# Initialize Pygame
 pygame.init()
-
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-
-TILE_SIZE = 60
-TILES_PER_ROW = 3
-MARGIN = 5
-Y_OFFSET = 50
-
 
 def initialize_game():
     GRID_SIZE = 50
     GRID_BORDER = 0
     MENU_WIDTH = 200
-    DisplayScreen = displayScreen(GRID, GRID_SIZE, GRID_BORDER, MENU_WIDTH, MEEPLE_SIZE)
+    DisplayScreen = pygameSettings.displayScreen(GRID, GRID_SIZE, GRID_BORDER, MENU_WIDTH, MEEPLE_SIZE)
     GAME_DISPLAY = DisplayScreen.pygameDisplay
     pygame.display.set_caption("Carcassonne Board Editor")
 
@@ -180,6 +175,30 @@ def get_clicked_tile(pos):
 
     return None
 
+def draw_current_player(GAME_DISPLAY, DisplayScreen, player):
+    start_x = 0
+    label_width = 200
+    label_height = 30
+    font = pygame.font.Font(None, 36)
+    player_name = players[player]
+    save_text = font.render(f"To Play: {player_name}", True, BLACK)
+
+    to_play = pygame.draw.rect(
+        GAME_DISPLAY,
+        player_colors[player_name],
+        (
+            start_x,
+            DisplayScreen.Window_Height - label_height,
+            label_width,
+            label_height,
+        ),
+    )
+
+    GAME_DISPLAY.blit(
+        save_text, (start_x + 20, DisplayScreen.Window_Height - label_height + 5)
+    )
+
+    return to_play
 
 def draw_buttons(GAME_DISPLAY, DisplayScreen):
     w, h = pygame.display.get_surface().get_size()
@@ -235,7 +254,7 @@ def save_game_state(Carcassonne):
         pickle.dump(Carcassonne, f)
 
 
-def load_game_state(DisplayScreen):
+def load_game_state():
     try:
         with open("board_state.pkl", "rb") as f:
             Carcassonne = pickle.load(f)
@@ -343,7 +362,9 @@ def printMeepleLocations(tile):
 
     print("\nAvailable meeple locations:")
     for i in range(len(available)):
-        print(f"{i + 1} : {name_mapping[list(available.keys())[i][0]]}")
+        # Cast shortname to long name i.e.: # C -> City
+        feature_shortname = list(available.keys())[i][0]
+        print(f"{i + 1} : {name_mapping.get(feature_shortname, feature_shortname)}")
 
 
 def main():
@@ -353,7 +374,8 @@ def main():
     current_tile_index = 16
     tile = Tile(current_tile_index)
     printMeepleLocations(tile)
-
+    
+    player = 0
     rotation = 0
     meeple = None
     running = True
@@ -369,7 +391,6 @@ def main():
     )
 
     while running:
-
         rotation = rotation % 4
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -379,11 +400,12 @@ def main():
                     save_game_state(Carcassonne)
                     print("Game state saved.")
                 elif load_rect.collidepoint(event.pos):
-                    Carcassonne = load_game_state(DisplayScreen)
+                    Carcassonne = load_game_state()
                     if Carcassonne:
                         print("Game state loaded.")
                     else:
                         print("Failed to load game state.")
+                        main()
                 else:
                     clicked_tile = get_clicked_tile(event.pos)
                     if clicked_tile is not None:
@@ -413,6 +435,9 @@ def main():
                             Carcassonne, current_tile_index, rotation
                         ):
                             Carcassonne.move(move_tuple)
+                            print(f"player: {player}")
+                            player = 1 - player
+                            print(f"after player: {player}")
                         else:
                             print("Invalid location pressed")
                             continue
@@ -443,8 +468,11 @@ def main():
                             f"Meeple index {meeple + 1} is not available. Available range: 0-{len(tile.AvailableMeepleLocs)}"
                         )
                         continue
+
+                    feature_shortname = list(tile.AvailableMeepleLocs.keys())[meeple][0]
                     print(
-                        f"Meeple location at index {meeple + 1} selected: {name_mapping[list(tile.AvailableMeepleLocs.keys())[meeple][0]]}"
+                        # Gets long name: i.e, M -> Monastery
+                        f"Meeple location at index {meeple + 1} selected: {name_mapping.get(feature_shortname, feature_shortname)}" 
                     )
 
                     i = 1
@@ -462,6 +490,7 @@ def main():
 
         GAME_DISPLAY.fill(WHITE)
 
+        
         drawGrid(DisplayScreen)
         diplayGameBoard(Carcassonne, DisplayScreen)
         draw_tile_selection(GAME_DISPLAY, tile_images, current_tile_index, Carcassonne)
@@ -478,6 +507,7 @@ def main():
         printTilesLeft(Carcassonne, DisplayScreen)
         highlightPossibleMoves(Carcassonne, current_tile_index, rotation, DisplayScreen)
         # GAME_DISPLAY.blit(meepleLabel, (0, 0))
+        draw_current_player(GAME_DISPLAY, DisplayScreen, player)
         pygame.display.flip()
 
     pygame.quit()
