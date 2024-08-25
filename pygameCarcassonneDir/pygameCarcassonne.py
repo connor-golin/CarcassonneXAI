@@ -202,6 +202,7 @@ def PlayGame(p1, p2):
                             hasSomethingNew = True
                     if event.type == pygame.MOUSEBUTTONDOWN:
                         X, Y = NT.evaluate_click(pygame.mouse.get_pos(), DisplayScreen)
+
                         if (X, Y) in NT.possibleCoordsMeeples:
                             rotation = 90 * NT.Rotated
                             ManualMove = (NT.nextTileIndex, X, Y, rotation, NT.Meeple)
@@ -240,6 +241,7 @@ def PlayGame(p1, p2):
                 i = 1
                 for location_key in NT.Tile.AvailableMeepleLocs:
                     location_value = NT.Tile.AvailableMeepleLocs[location_key]
+
                     NT.addMeepleLocations(
                         location_key,
                         location_value,
@@ -250,7 +252,7 @@ def PlayGame(p1, p2):
                     NT.updateMeepleMenu(location_key, location_value, i, numberSelected)
                     i += 1
                 NT.rotate(NT.Rotated, newRotation)
-            else:
+            else: 
                 if not isGameOver:
                     NT.resetImage()
                     NT.pressSpaceInstruction()

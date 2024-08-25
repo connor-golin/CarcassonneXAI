@@ -244,14 +244,14 @@ def playMove(NextTile, player, Carcassonne, TileIndex, isStartOfGame = False, Ma
 
 
 
-def printTilesLeft(Carcassonne, displayScreen):
+def printTilesLeft(Carcassonne, displayScreen, *args):
     # attributes
     Grid_Window_Width = displayScreen.Total_Grid_Width
     Menu_Width = displayScreen.Menu_Width
     GAME_DISPLAY = displayScreen.pygameDisplay
     
     # rectangular surface
-    rect = (0,0, 300, 40)
+    rect = (0,0, 200, 40)
     label = pygame.Surface(pygame.Rect(rect).size)
     label.set_alpha(165)
     pygame.draw.rect(label, BROWN, label.get_rect(), 10)
@@ -267,7 +267,7 @@ def printTilesLeft(Carcassonne, displayScreen):
     # attach to rectangle
     label.blit(tilesLeftLabel.text_surface, ((width - text_width)/2, (height - text_height)/2))
     # attach rectangle to screen
-    GAME_DISPLAY.blit(label, (Grid_Window_Width + (Menu_Width - width)/2, 250))
+    GAME_DISPLAY.blit(label, (Grid_Window_Width + (Menu_Width - width)/2, 0))
     
     
 
