@@ -156,8 +156,7 @@ class Tile:
                 
             # update info
             self.info = self.TileInfo()            
-            
-    
+
     # representation of tile
     def __repr__(self):
         ShowImage = False
@@ -168,11 +167,7 @@ class Tile:
                 image = cv2.rotate(image, ROTATE_DICT[self.Rotation])
             showImage(image)
         """            
-        String = "Tile Index:" + str(self.TileIndex) + ", Description: " + str(self.tile_desc) + "\n"
-        String += "Properties: " + str(self.Properties) + "\n"
-        String += "Rotation: " + str(self.Rotation) + "\n"
-        String += "Tile City Index: "+str(self.TileCitiesIndex)+"\nTile Road Index: "+str(self.TileRoadsIndex)+"\nTile Farm Index: "+str(self.TileFarmsIndex)
-        return String      
+        return str(self.TileIndex)
     
     
 ##############################################################################

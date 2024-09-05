@@ -1,4 +1,6 @@
 # file imports
+from collections import defaultdict
+from Carcassonne_Game.Tile_dict import CITY_OPENINGS_DICT, HAS_CITY
 from pygameCarcassonneDir.pygameSettings import GRID, GRID_SIZE, GRID_WINDOW_HEIGHT, GRID_WINDOW_WIDTH, MEEPLE_SIZE, BLACK, WHITE, LIGHTGREEN, BROWN
 from pygameCarcassonneDir.pygameSettings import FONT_MEEPLE_IMAGE, FONT_MEEPLE_MENU, RED, BLUE, DARK_GREEN
 from pygameCarcassonneDir.pygameLabel import Label
@@ -13,22 +15,6 @@ WIDTH = HEIGHT = 104  # image scaled x2
 
 XSHIFT = YSHIFT = MEEPLE_SIZE//2
 
-"""
-MEEPLE_LOCATION_DICT = {
-    (0,1): [X_DEPTH, HEIGHT//2 - YSHIFT],
-    (0,2): [WIDTH//4, HEIGHT - Y_DEPTH],
-    (1,1): [WIDTH//2 - XSHIFT, Y_DEPTH - YSHIFT],
-    (1,2): [WIDTH//4, Y_DEPTH],
-    (2,1): [WIDTH - X_DEPTH - XSHIFT, HEIGHT//2 - YSHIFT],
-    (2,2): [3*(WIDTH//4), Y_DEPTH],
-    (3,0): [WIDTH//4 - XSHIFT, HEIGHT - Y_DEPTH - YSHIFT],
-    (3,1): [WIDTH//2 - XSHIFT, HEIGHT - Y_DEPTH - YSHIFT],
-    (3,2): [3*(WIDTH//4) - XSHIFT, HEIGHT - Y_DEPTH - YSHIFT],
-    (0,4): [WIDTH//2, HEIGHT//2]
-    }
-"""
-
-# reverse ?
 MEEPLE_LOCATION_DICT = {
     (0,1): [X_DEPTH - XSHIFT, HEIGHT//2 - YSHIFT],
     (0,2): [WIDTH//4 -XSHIFT, HEIGHT - Y_DEPTH - YSHIFT],
@@ -42,7 +28,7 @@ MEEPLE_LOCATION_DICT = {
     (0,4): [WIDTH//2 - XSHIFT, HEIGHT//2- YSHIFT],
     # exceptions
     0: [3*(WIDTH//4),Y_DEPTH - YSHIFT]
-    }
+}
 
 # pygame functions
 
@@ -269,7 +255,81 @@ def printTilesLeft(Carcassonne, displayScreen, *args):
     # attach rectangle to screen
     GAME_DISPLAY.blit(label, (Grid_Window_Width + (Menu_Width - width)/2, 0))
     
+def rotate_point(x, y, rotation):
+    """Rotate the point (x, y) by 90 degrees clockwise."""
+    if rotation == 0:
+        return x, y
+    elif rotation == 1:
+        return -y, x
+    elif rotation == 2:
+        return -x, -y
+    elif rotation == 3:
+        return y, -x
+    else:
+        return x, y
+
+def get_city_tiles(Carcassonne):
+    cities = {}
+    for (x, y), tile in Carcassonne.Board.items():
+        tile_index = tile.TileIndex
+        if tile_index in HAS_CITY:
+            cities[(x,y)] = tile
+
+    return cities
+
+def city_openings(Carcassonne):
+    surroundings = defaultdict(list)
+    board = Carcassonne.Board
+    city_index = 0
+
+    for (x, y), tile in Carcassonne.Board.items():
+        tile_index = tile.TileIndex
+        rotation = tile.Rotation // 90
+
+        if tile_index in CITY_OPENINGS_DICT:
+            # Iterate through all city openings lists for the tile
+            for city_openings in CITY_OPENINGS_DICT[tile_index]:
+                for city_opening in city_openings:
+                    # Determine the surrounding coordinates based on city openings
+                    if city_opening == 0:
+                        dx, dy = rotate_point(-1, 0, rotation)
+                    elif city_opening == 1:
+                        dx, dy = rotate_point(0, 1, rotation)
+                    elif city_opening == 2:
+                        dx, dy = rotate_point(1, 0, rotation)
+                    elif city_opening == 3:
+                        dx, dy = rotate_point(0, -1, rotation)
+                    else:
+                        continue
+
+                    # if its already in the surroundings, skip
+                    if (x + dx, y + dy) in get_city_tiles(Carcassonne).keys():
+                        continue
+
+                    if (x, y) in board.keys():
+                        tile = board[(x, y)]
+                        surroundings[tile].append((x + dx, y + dy))
+                        city_index += 1
+    return surroundings
+
+def map_cities_to_openings(Carcassonne):
+    city_openings_map = defaultdict(list)
+    tile_openings = city_openings(Carcassonne)
     
+    for tile, openings in tile_openings.items():
+        for i, city_id in enumerate(tile.TileCitiesIndex):
+            if city_id is not None:
+                # Find the root city
+                while Carcassonne.BoardCities[city_id].Pointer != city_id:
+                    city_id = Carcassonne.BoardCities[city_id].Pointer
+                
+                # Add openings to the city
+                city_openings_map[city_id].extend(openings)
+    
+    # Remove duplicates
+    city_openings_map = {k: list(set(v)) for k, v in city_openings_map.items()}
+    
+    return dict(city_openings_map)
 
 def printScores(Carcassonne, displayScreen):
     # attributes

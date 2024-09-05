@@ -62,7 +62,7 @@ PLAYERS = [
 ]
 
 PLAYER1 = [HumanPlayer()]
-PLAYER2 = [Human]
+PLAYER2 = [HumanPlayer()]
 
 AI_MOVE_EVENT = pygame.USEREVENT + 1
 AI_DELAY = 1000  # ms

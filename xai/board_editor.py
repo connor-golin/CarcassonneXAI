@@ -1,3 +1,4 @@
+from collections import defaultdict
 import json
 import random
 import pygame
@@ -8,18 +9,29 @@ from typing import Dict, List, Tuple
 
 import pygame_menu
 
-
 sys.path.append(os.getcwd())
 
-from pygameCarcassonneDir.pygameFunctions import diplayGameBoard, drawGrid, get_clicked_X, get_clicked_Y, meepleCoordinates, placeColourTile, printTilesLeft
+from Carcassonne_Game.Tile_dict import CITY_OPENINGS_DICT, HAS_CITY
+from pygameCarcassonneDir.pygameFunctions import (
+    diplayGameBoard,
+    drawGrid,
+    get_clicked_X,
+    get_clicked_Y,
+    map_cities_to_openings,
+    meepleCoordinates,
+    placeColourTile,
+    printTilesLeft,
+)
 from pygameCarcassonneDir.pygameLabel import Label
 from pygameCarcassonneDir import pygameNextTile, pygameSettings
 from Carcassonne_Game.Carcassonne import CarcassonneState
 from Carcassonne_Game.Tile import Tile
 from player.Player import HumanPlayer
 
+from xai.search import MinimaxPlayer
+
 # Load config file
-with open('xai/config.json', 'r') as config_file:
+with open("xai/config.json", "r") as config_file:
     config = json.load(config_file)
 
 # Config Types
@@ -28,15 +40,15 @@ Players = List[str]
 PlayerColors = Dict[str, Tuple[int, int, int]]
 
 # Config Variables
-name_mapping: NameMapping = config['name_mapping']
-players: Players = config['players'] # index 0: Blue, index 1: Red
-player_colors: PlayerColors = {k: tuple(v) for k, v in config['player_colors'].items()}
-WHITE: Tuple[int, int, int] = tuple(config['WHITE'])
-BLACK: Tuple[int, int, int] = tuple(config['BLACK'])
-TILE_SIZE: int = config['TILE_SIZE']
-TILES_PER_ROW: int = config['TILES_PER_ROW']
-MARGIN: int = config['MARGIN']
-Y_OFFSET: int = config['Y_OFFSET']
+name_mapping: NameMapping = config["name_mapping"]
+players: Players = config["players"]  # index 0: Blue, index 1: Red
+player_colors: PlayerColors = {k: tuple(v) for k, v in config["player_colors"].items()}
+WHITE: Tuple[int, int, int] = tuple(config["WHITE"])
+BLACK: Tuple[int, int, int] = tuple(config["BLACK"])
+TILE_SIZE: int = config["TILE_SIZE"]
+TILES_PER_ROW: int = config["TILES_PER_ROW"]
+MARGIN: int = config["MARGIN"]
+Y_OFFSET: int = config["Y_OFFSET"]
 
 # Constants from pygameNextTile
 FEATURE_DICT = pygameNextTile.FEATURE_DICT
@@ -56,6 +68,7 @@ MEEPLE_SIZE = pygameSettings.MEEPLE_SIZE
 # Initialize Pygame
 pygame.init()
 
+
 def startMenu():
     pygame.init()
     surface = pygame.display.set_mode((600, 400))
@@ -63,20 +76,33 @@ def startMenu():
     def city_blocking():
         mainloop(board_state="board_states/city_blocking.pkl")
 
+    def city_blocking2():
+        mainloop(board_state="board_states/city_blocking2.pkl")
+
+    def city_blocking3():
+        mainloop(board_state="board_states/city_blocking3.pkl")
+
     def new_game():
         mainloop(board_state=None)
 
-    menu = pygame_menu.Menu("Select a scenario", 600, 400, theme=pygame_menu.themes.THEME_DARK)
+    menu = pygame_menu.Menu(
+        "Select a scenario", 600, 400, theme=pygame_menu.themes.THEME_DARK
+    )
     menu.add.button("New Game", new_game)
     menu.add.button("City Blocking", city_blocking)
+    menu.add.button("City Blocking 2", city_blocking2)
+    menu.add.button("City Blocking 3", city_blocking3)
     menu.add.button("Quit", pygame_menu.events.EXIT)
     menu.mainloop(surface)
+
 
 def initialize_game():
     GRID_SIZE = 50
     GRID_BORDER = 0
     MENU_WIDTH = 200
-    DisplayScreen = pygameSettings.displayScreen(GRID, GRID_SIZE, GRID_BORDER, MENU_WIDTH, MEEPLE_SIZE)
+    DisplayScreen = pygameSettings.displayScreen(
+        GRID, GRID_SIZE, GRID_BORDER, MENU_WIDTH, MEEPLE_SIZE
+    )
     GAME_DISPLAY = DisplayScreen.pygameDisplay
     pygame.display.set_caption("Carcassonne Board Editor")
 
@@ -151,7 +177,9 @@ def draw_current_tile(
         ),
     )
 
-    return (w + start_x) / 2 - rotated_image.get_width() / 2 - text.get_width() / 4, h - 1.75 * rotated_image.get_height()
+    return (
+        w + start_x
+    ) / 2 - rotated_image.get_width() / 2 - text.get_width() / 4, h - 1.75 * rotated_image.get_height()
 
 
 def possibleCoordinatesMeeples(Carcassonne, Meeple, rotation, tile_index):
@@ -196,6 +224,7 @@ def get_clicked_tile(pos):
 
     return None
 
+
 def draw_current_player(GAME_DISPLAY, DisplayScreen, player, x, y):
     y -= 50
     label_width = 160
@@ -215,12 +244,10 @@ def draw_current_player(GAME_DISPLAY, DisplayScreen, player, x, y):
         ),
     )
 
-    GAME_DISPLAY.blit(
-        save_text, 
-        (x + 10, y)
-    )
+    GAME_DISPLAY.blit(save_text, (x + 10, y))
 
     return to_play
+
 
 def draw_buttons(GAME_DISPLAY, DisplayScreen):
     w, h = pygame.display.get_surface().get_size()
@@ -270,6 +297,7 @@ def draw_buttons(GAME_DISPLAY, DisplayScreen):
 
     return save_rect, load_rect
 
+
 def draw_AI_move(GAME_DISPLAY, DisplayScreen):
     start_x = 0
     label_width = 200
@@ -279,7 +307,7 @@ def draw_AI_move(GAME_DISPLAY, DisplayScreen):
 
     to_play = pygame.draw.rect(
         GAME_DISPLAY,
-        (100,100,100),
+        (100, 100, 100),
         (
             start_x,
             DisplayScreen.Window_Height - label_height,
@@ -293,6 +321,7 @@ def draw_AI_move(GAME_DISPLAY, DisplayScreen):
     )
 
     return to_play
+
 
 def save_game_state(Carcassonne):
     rand = random.randint(1, 9999999)
@@ -415,17 +444,21 @@ def printMeepleLocations(tile):
         feature_shortname = list(available.keys())[i][0]
         print(f"{i + 1} : {name_mapping.get(feature_shortname, feature_shortname)}")
 
+
 def playRandomMove(Carcassonne, player):
     available_moves = Carcassonne.availableMoves(False)  # Get available moves
-    
+
     if not available_moves:
         print("No available moves.")
         return
 
     move = random.choice(available_moves)  # Choose a random move
-    Carcassonne.move((move.TileIndex, move.X, move.Y, move.Rotation, move.MeepleInfo))  # Play the move
-    
+    Carcassonne.move(
+        (move.TileIndex, move.X, move.Y, move.Rotation, move.MeepleInfo)
+    )  # Play the move
+
     print(f"Random move played by player {player}: {move}")
+
 
 def mainloop(board_state):
     DisplayScreen, GAME_DISPLAY, Carcassonne, tile_images = initialize_game()
@@ -434,11 +467,11 @@ def mainloop(board_state):
     current_tile_index = 16
     tile = Tile(current_tile_index)
     printMeepleLocations(tile)
-    
+
     if board_state:
         Carcassonne = load_game_state(board_state)
 
-    player = Carcassonne.playerSymbol - 1
+    player = Carcassonne.playerSymbol - 1  # 0
     rotation = 0
     meeple = None
     running = True
@@ -459,9 +492,11 @@ def mainloop(board_state):
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
+                # save state
                 if save_rect.collidepoint(event.pos):
                     save_game_state(Carcassonne)
                     print("Game state saved.")
+                # load state
                 elif load_rect.collidepoint(event.pos):
                     Carcassonne = load_game_state(None)
                     if Carcassonne:
@@ -469,8 +504,26 @@ def mainloop(board_state):
                     else:
                         print("Failed to load game state.")
                         mainloop()
+
                 elif ai_search.collidepoint(event.pos):
-                    print("AI Search button clicked")
+                    print(f"Searching for best move...")
+                    # Modify your main game loop to use MinimaxPlayer
+                    minimax_player = MinimaxPlayer(max_depth=2, max_moves_to_consider=10)
+
+                    Carcassonne.playerSymbol = player + 1
+
+                    eval, move, isBlocking = minimax_player.get_best_move(Carcassonne)
+                    blocks = "Blocks" if isBlocking else "Does not block"
+                    print(f"Move with a best score of {eval} was {move}. The move: {blocks} a city.")
+                    Carcassonne.move(move)
+
+                    # city_openings_mapping = map_cities_to_openings(Carcassonne)
+
+                    # for city_id, openings in city_openings_mapping.items():
+                    #     print(f"City {city_id} has {len(openings)} openings at coordinates: {openings}")
+
+                    player = 1 - player
+
                 else:
                     clicked_tile = get_clicked_tile(event.pos)
                     if clicked_tile is not None:
@@ -500,9 +553,8 @@ def mainloop(board_state):
                             Carcassonne, current_tile_index, rotation
                         ):
                             Carcassonne.move(move_tuple)
-                            print(f"player: {player}")
                             player = 1 - player
-                            print(f"after player: {player}")
+                            print(f"player: {player}")
                         else:
                             print("Invalid location pressed")
                             continue
@@ -539,7 +591,7 @@ def mainloop(board_state):
                     feature_shortname = list(tile.AvailableMeepleLocs.keys())[meeple][0]
                     print(
                         # Gets long name: i.e, M -> Monastery
-                        f"Meeple location at index {meeple + 1} selected: {name_mapping.get(feature_shortname, feature_shortname)}" 
+                        f"Meeple location at index {meeple + 1} selected: {name_mapping.get(feature_shortname, feature_shortname)}"
                     )
 
                     i = 1
@@ -558,7 +610,7 @@ def mainloop(board_state):
         GAME_DISPLAY.fill(WHITE)
 
         # playRandomMove(Carcassonne, player)
-        
+
         drawGrid(DisplayScreen)
         diplayGameBoard(Carcassonne, DisplayScreen)
         draw_tile_selection(GAME_DISPLAY, tile_images, current_tile_index, Carcassonne)
@@ -570,9 +622,7 @@ def mainloop(board_state):
             rotation * 90 % 360,
         )
         draw_current_player(GAME_DISPLAY, DisplayScreen, player, x, y)
-        save_rect, load_rect = draw_buttons(
-            GAME_DISPLAY, DisplayScreen
-        ) 
+        save_rect, load_rect = draw_buttons(GAME_DISPLAY, DisplayScreen)
         printTilesLeft(Carcassonne, DisplayScreen)
         highlightPossibleMoves(Carcassonne, current_tile_index, rotation, DisplayScreen)
         ai_search = draw_AI_move(GAME_DISPLAY, DisplayScreen)
@@ -582,7 +632,6 @@ def mainloop(board_state):
             print(
                 f"Winner: Player {players[Carcassonne.winner - 1]}, Scores:  Blue: {Carcassonne.Scores[0]} - Red: {Carcassonne.Scores[1]}"
             )
-            
 
     pygame.quit()
     sys.exit()
