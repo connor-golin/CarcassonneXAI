@@ -75,12 +75,6 @@ def startMenu():
     def city_blocking():
         mainloop(board_state="board_states/city_blocking.pkl")
 
-    def city_blocking2():
-        mainloop(board_state="board_states/city_blocking2.pkl")
-
-    def city_blocking3():
-        mainloop(board_state="board_states/city_blocking3.pkl")
-
     def new_game():
         mainloop(board_state=None)
 
@@ -89,8 +83,6 @@ def startMenu():
     )
     menu.add.button("New Game", new_game)
     menu.add.button("City Blocking", city_blocking)
-    menu.add.button("City Blocking 2", city_blocking2)
-    menu.add.button("City Blocking 3", city_blocking3)
     menu.add.button("Quit", pygame_menu.events.EXIT)
     menu.mainloop(surface)
 
@@ -470,7 +462,7 @@ def mainloop(board_state):
     if board_state:
         Carcassonne = load_game_state(board_state)
 
-    player = Carcassonne.playerSymbol - 1  # 0
+    player = Carcassonne.playerSymbol - 1
     rotation = 0
     meeple = None
     running = True
@@ -483,6 +475,11 @@ def mainloop(board_state):
     meepleLabel.blit(
         meepleInfoLabel.text_surface,
         (MEEPLE_LABEL_X, MEEPLE_LABEL_Y - MEEPLE_LABEL_SHIFT_Y),
+    )
+
+    # init minimax player
+    minimax_player = MinimaxPlayer(
+        max_depth=3, max_moves_to_consider=5, state=Carcassonne
     )
 
     while running:
@@ -506,19 +503,14 @@ def mainloop(board_state):
 
                 elif ai_search.collidepoint(event.pos):
                     print(f"Searching for best move...")
-                    # Modify your main game loop to use MinimaxPlayer
-                    # minimax_player = MinimaxPlayer(max_depth=2, max_moves_to_consider=10)
-
-                    # eval, move, isBlocking = minimax_player.get_best_move(Carcassonne)
-                    # blocks = "Blocks" if isBlocking else "Does not block"
-                    # print(f"Move with a best score of {eval} was {move}. The move: {blocks} a city.")
-                    # Carcassonne.move(move)
-
-                    for city in Carcassonne.BoardCities.values():
-                        print(f"openings: {city.getOpenings(Carcassonne)}")
+                    eval, move, isBlocking = minimax_player.get_best_move(Carcassonne)
+                    blocks = "Blocks" if isBlocking else "Does not block"
+                    print(
+                        f"Move with a best score of {eval} was {move}. The move: {blocks} a city."
+                    )
+                    Carcassonne.move(move)
 
                     player = 1 - player
-
                 else:
                     clicked_tile = get_clicked_tile(event.pos)
                     if clicked_tile is not None:

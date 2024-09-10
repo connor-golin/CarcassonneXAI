@@ -49,7 +49,7 @@ class City:
             self.Value = Value
             self.Meeples = Meeples
             self.ClosedFlag = False
-            self.isBlocked = False
+            self.blocked = False
             self.tiles = []
 
     def CloneCity(self):
@@ -60,8 +60,8 @@ class City:
         Clone.Value = self.Value
         Clone.Meeples = [x for x in self.Meeples]
         Clone.ClosedFlag = self.ClosedFlag
-        Clone.isBlocked = self.isBlocked
-        Clone.openings_coordinates = [x for x in self.openings_coordinates]
+        Clone.blocked = self.blocked
+        Clone.tiles = [x for x in self.tiles]
         return Clone
 
     def Update(self, OpeningsChange=0, ValueAdded=0, MeeplesAdded=[0, 0]):
@@ -75,13 +75,12 @@ class City:
             self.tiles.append(tile)
 
     def isBlocked(self, state: Carcassonne) -> bool:
-        if self.Openings <= 0:
-            return True
+        openings = self.getOpenings(state)
 
-        for x, y in self.all_coordinates:
+        if not openings:
+            return False
 
-            print(f"Checking city opening at {x, y}")
-
+        for x, y in openings:
             for tile_index in range(0, 24):
                 tile = Tile(tile_index)
 
@@ -89,50 +88,54 @@ class City:
                     SurroundingSpots = [(x - 1, y), (x, y + 1), (x + 1, y), (x, y - 1)]
                     fits, _ = state.doesTileFit(tile, rotation, SurroundingSpots)
                     if fits:
-                        print(f"Tile {tile_index} fits at {x, y}")
                         return False
 
-        self.isBlocked = True
+        self.blocked = True
         return True
 
     def get_occupied_coordinates(self):
         return [tile.coordinates for tile in self.tiles]
 
     def getOpenings(self, state):
-        surroundings = []
+        openings = set()
+
+        if self.blocked:
+            return []
 
         for tile in self.tiles:
             x, y = tile.coordinates
             tile_index = tile.TileIndex
             rotation = tile.Rotation // 90
 
-            if tile_index in CITY_OPENINGS_DICT:
-                # Iterate through all city openings lists for the tile
-                for city_openings in CITY_OPENINGS_DICT[tile_index]:
-                    for city_opening in city_openings:
-                        # Determine the surrounding coordinates based on city openings
-                        if city_opening == 0:
-                            dx, dy = rotate_point(-1, 0, rotation)
-                        elif city_opening == 1:
-                            dx, dy = rotate_point(0, 1, rotation)
-                        elif city_opening == 2:
-                            dx, dy = rotate_point(1, 0, rotation)
-                        elif city_opening == 3:
-                            dx, dy = rotate_point(0, -1, rotation)
-                        else:
-                            continue
+            # Iterate through all city openings lists for the tile
+            for city_openings in CITY_OPENINGS_DICT[tile_index]:
+                for city_opening in city_openings:
+                    # Determine the surrounding coordinates based on city openings
+                    if city_opening == 0:
+                        dx, dy = rotate_point(-1, 0, rotation)
+                    elif city_opening == 1:
+                        dx, dy = rotate_point(0, 1, rotation)
+                    elif city_opening == 2:
+                        dx, dy = rotate_point(1, 0, rotation)
+                    elif city_opening == 3:
+                        dx, dy = rotate_point(0, -1, rotation)
+                    else:
+                        continue
 
-                        # if its already in the surroundings, skip
-                        if (
-                            x + dx,
-                            y + dy,
-                        ) in self.get_occupied_coordinates():  # x,y : tile
-                            continue
+                    new_x, new_y = x + dx, y + dy
 
-                        if (x, y) in state.Board.keys():
-                            tile = state.Board[(x, y)]
-                            surroundings.append((x + dx, y + dy))
-        return surroundings
+                    # Skip if the surrounding coordinate is already occupied
+                    if (new_x, new_y) in self.get_occupied_coordinates():
+                        continue
+
+                    # Also skip if the tile already exists on the board
+                    if (new_x, new_y) in state.Board:
+                        continue
+
+                    # If not occupied or placed, add as an opening
+                    openings.add((new_x, new_y))
+
+        return list(openings)
 
     def __repr__(self):
         return f"""ID={self.ID}, Pointer={self.Pointer}, Value={self.Value}, Openings={self.Openings}, Meeples=Player1: {self.Meeples[0]}, Player2: {self.Meeples[1]}, Closed={self.ClosedFlag}, Blocked={self.isBlocked}, tiles={self.tiles}"""

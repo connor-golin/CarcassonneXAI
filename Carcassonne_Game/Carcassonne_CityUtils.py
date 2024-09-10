@@ -72,7 +72,6 @@ def cityOneOpening(
 
 
 def mergeCities(self, PrimaryCityIndex, MergingCityIndex, connection_reduction=1):
-    print("merging")
     PrimaryCity = self.BoardCities[PrimaryCityIndex]
     MergingCity = self.BoardCities[MergingCityIndex]
 
@@ -90,8 +89,7 @@ def mergeCities(self, PrimaryCityIndex, MergingCityIndex, connection_reduction=1
     MergingCity.all_coordinates = []
 
     # remove the secondary city from boardcities
-    del self.BoardCities[MergingCityIndex]
-
+    # del self.BoardCities[MergingCityIndex]
     return PrimaryCityIndex
 
 
