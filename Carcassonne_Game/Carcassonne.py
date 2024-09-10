@@ -695,6 +695,7 @@ class CarcassonneState:
             (X, Y)
         )  # position of placed tile is no longer available
         PlayingTile = Tile(PlayingTileIndex)
+        PlayingTile.set_coordinate(X, Y)
         self.deck.remove(PlayingTileIndex)  # remove from deck
         self.TileQuantities[PlayingTileIndex] -= 1
         self.TotalTiles -= 1
@@ -921,7 +922,8 @@ class CarcassonneState:
                 self.MatchingSide[Side]
             ][self.MatchingLine[FarmLine]]
 
-        while BoardFeature[MatchingIndex].Pointer != BoardFeature[MatchingIndex].ID:
+
+        while BoardFeature.get(MatchingIndex).Pointer != BoardFeature.get(MatchingIndex).ID:
             MatchingIndex = BoardFeature[MatchingIndex].Pointer
         MatchingFeature = BoardFeature[MatchingIndex]
 

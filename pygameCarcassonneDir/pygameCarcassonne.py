@@ -129,6 +129,7 @@ def FinalMenu(Carcassonne):
     menu.add.button("Quit", pygame_menu.events.EXIT)
     menu.mainloop(surface)
 
+
 # main game loop
 def PlayGame(p1, p2):
     global GAME_DISPLAY, CLOCK
@@ -252,7 +253,7 @@ def PlayGame(p1, p2):
                     NT.updateMeepleMenu(location_key, location_value, i, numberSelected)
                     i += 1
                 NT.rotate(NT.Rotated, newRotation)
-            else: 
+            else:
                 if not isGameOver:
                     NT.resetImage()
                     NT.pressSpaceInstruction()

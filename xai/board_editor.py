@@ -17,7 +17,6 @@ from pygameCarcassonneDir.pygameFunctions import (
     drawGrid,
     get_clicked_X,
     get_clicked_Y,
-    map_cities_to_openings,
     meepleCoordinates,
     placeColourTile,
     printTilesLeft,
@@ -508,19 +507,15 @@ def mainloop(board_state):
                 elif ai_search.collidepoint(event.pos):
                     print(f"Searching for best move...")
                     # Modify your main game loop to use MinimaxPlayer
-                    minimax_player = MinimaxPlayer(max_depth=2, max_moves_to_consider=10)
+                    # minimax_player = MinimaxPlayer(max_depth=2, max_moves_to_consider=10)
 
-                    Carcassonne.playerSymbol = player + 1
+                    # eval, move, isBlocking = minimax_player.get_best_move(Carcassonne)
+                    # blocks = "Blocks" if isBlocking else "Does not block"
+                    # print(f"Move with a best score of {eval} was {move}. The move: {blocks} a city.")
+                    # Carcassonne.move(move)
 
-                    eval, move, isBlocking = minimax_player.get_best_move(Carcassonne)
-                    blocks = "Blocks" if isBlocking else "Does not block"
-                    print(f"Move with a best score of {eval} was {move}. The move: {blocks} a city.")
-                    Carcassonne.move(move)
-
-                    # city_openings_mapping = map_cities_to_openings(Carcassonne)
-
-                    # for city_id, openings in city_openings_mapping.items():
-                    #     print(f"City {city_id} has {len(openings)} openings at coordinates: {openings}")
+                    for city in Carcassonne.BoardCities.values():
+                        print(f"openings: {city.getOpenings(Carcassonne)}")
 
                     player = 1 - player
 
@@ -559,12 +554,16 @@ def mainloop(board_state):
                             print("Invalid location pressed")
                             continue
             elif event.type == pygame.KEYDOWN:
+                numberOfRotations = len(tile.AvailableRotations) - 1
+                if rotation < 0 or (rotation + 1 > numberOfRotations):
+                    print(f"This tile cannot rotate this way!")
+                    rotation = 0
+                    break
+
                 if event.key == pygame.K_LEFT:
                     rotation -= 1
-                    print(f"new rotation: {rotation}")
                 elif event.key == pygame.K_RIGHT:
                     rotation += 1
-                    print(f"new rotation: {rotation}")
                 elif event.key in [
                     pygame.K_0,
                     pygame.K_1,
