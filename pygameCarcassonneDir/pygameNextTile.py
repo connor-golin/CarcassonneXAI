@@ -212,7 +212,6 @@ class nextTile:
 
         for move in availableMoves:
             MeepleInfo = move.MeepleInfo
-            print(f"meeple info: {MeepleInfo}")
             if MeepleInfo == self.Meeple:
                 if move.Rotation == (self.Rotated * 90):
                     coordinates.append((move.X, move.Y))

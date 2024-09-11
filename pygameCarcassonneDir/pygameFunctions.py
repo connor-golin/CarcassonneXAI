@@ -4,12 +4,12 @@ from pygameCarcassonneDir.pygameSettings import (
     MEEPLE_SIZE,
     WHITE,
     BROWN,
-)
-from pygameCarcassonneDir.pygameSettings import (
     RED,
     BLUE,
     DARK_GREEN,
+    TILE_WIDTH
 )
+
 from pygameCarcassonneDir.pygameLabel import Label
 
 # packages
@@ -18,7 +18,7 @@ import math
 
 X_DEPTH = 10
 Y_DEPTH = 20
-WIDTH = HEIGHT = 104  # image scaled x2
+WIDTH = HEIGHT = TILE_WIDTH  # image scaled x2
 
 XSHIFT = YSHIFT = MEEPLE_SIZE // 2
 
@@ -79,7 +79,7 @@ def drawGrid(DisplayScreen):
     GAME_DISPLAY = DisplayScreen.pygameDisplay
 
     # add game mat
-    gameMat = pygame.image.load("pygame_images/game_mat.jpg")
+    gameMat = pygame.image.load("pygame_images/game_mat.png")
     gameMat = pygame.transform.scale(gameMat, (Grid_Window_Width, Grid_Window_Height))
     GAME_DISPLAY.blit(gameMat, (Grid_border, Grid_border))
 
@@ -258,9 +258,10 @@ def printTilesLeft(Carcassonne, displayScreen, *args):
     Grid_Window_Width = displayScreen.Total_Grid_Width
     Menu_Width = displayScreen.Menu_Width
     GAME_DISPLAY = displayScreen.pygameDisplay
+    window_width, window_height = pygame.display.get_surface().get_size()
 
     # rectangular surface
-    rect = (0, 0, 200, 40)
+    rect = (0, 0, Menu_Width, 40)
     label = pygame.Surface(pygame.Rect(rect).size)
     label.set_alpha(165)
     pygame.draw.rect(label, BROWN, label.get_rect(), 10)
@@ -279,7 +280,7 @@ def printTilesLeft(Carcassonne, displayScreen, *args):
         ((width - text_width) / 2, (height - text_height) / 2),
     )
     # attach rectangle to screen
-    GAME_DISPLAY.blit(label, (Grid_Window_Width + (Menu_Width - width) / 2, 0))
+    GAME_DISPLAY.blit(label, (window_width - Menu_Width, 0))
 
 
 def rotate_point(x, y, rotation):

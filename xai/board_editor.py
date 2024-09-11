@@ -1,17 +1,12 @@
-from collections import defaultdict
-import json
 import random
 import pygame
 import sys
 import os
 import pickle
-from typing import Dict, List, Tuple
-
 import pygame_menu
 
 sys.path.append(os.getcwd())
 
-from Carcassonne_Game.Tile_dict import CITY_OPENINGS_DICT, HAS_CITY
 from pygameCarcassonneDir.pygameFunctions import (
     diplayGameBoard,
     drawGrid,
@@ -26,43 +21,8 @@ from pygameCarcassonneDir import pygameNextTile, pygameSettings
 from Carcassonne_Game.Carcassonne import CarcassonneState
 from Carcassonne_Game.Tile import Tile
 from player.Player import HumanPlayer
-
 from xai.search import MinimaxPlayer
-
-# Load config file
-with open("xai/config.json", "r") as config_file:
-    config = json.load(config_file)
-
-# Config Types
-NameMapping = Dict[str, str]
-Players = List[str]
-PlayerColors = Dict[str, Tuple[int, int, int]]
-
-# Config Variables
-name_mapping: NameMapping = config["name_mapping"]
-players: Players = config["players"]  # index 0: Blue, index 1: Red
-player_colors: PlayerColors = {k: tuple(v) for k, v in config["player_colors"].items()}
-WHITE: Tuple[int, int, int] = tuple(config["WHITE"])
-BLACK: Tuple[int, int, int] = tuple(config["BLACK"])
-TILE_SIZE: int = config["TILE_SIZE"]
-TILES_PER_ROW: int = config["TILES_PER_ROW"]
-MARGIN: int = config["MARGIN"]
-Y_OFFSET: int = config["Y_OFFSET"]
-
-# Constants from pygameNextTile
-FEATURE_DICT = pygameNextTile.FEATURE_DICT
-MEEPLE_LOCATION_DICT_SCALED = pygameNextTile.MEEPLE_LOCATION_DICT_SCALED
-
-# Constants from pygameSettings
-FONT_MEEPLE_IMAGE = pygameSettings.FONT_MEEPLE_IMAGE
-FONT_MEEPLE_MENU = pygameSettings.FONT_MEEPLE_MENU
-MEEPLE_CHOICE_HIGHLIGHT = pygameSettings.MEEPLE_CHOICE_HIGHLIGHT
-MEEPLE_LABEL_SHIFT_X = pygameSettings.MEEPLE_LABEL_SHIFT_X
-MEEPLE_LABEL_SHIFT_Y = pygameSettings.MEEPLE_LABEL_SHIFT_Y
-MEEPLE_LABEL_X = pygameSettings.MEEPLE_LABEL_X
-MEEPLE_LABEL_Y = pygameSettings.MEEPLE_LABEL_Y
-GRID = pygameSettings.GRID
-MEEPLE_SIZE = pygameSettings.MEEPLE_SIZE
+from load_config import *  # import all config.json variables
 
 # Initialize Pygame
 pygame.init()
@@ -73,34 +33,32 @@ def startMenu():
     surface = pygame.display.set_mode((600, 400))
 
     def city_blocking():
-        mainloop(board_state="board_states/city_blocking.pkl")
+        main(board_state="board_states/city_blocking.pkl")
+
+    def field_merging():
+        main(board_state="board_states/field_merging.pkl")
 
     def new_game():
-        mainloop(board_state=None)
+        main(board_state=None)
 
     menu = pygame_menu.Menu(
         "Select a scenario", 600, 400, theme=pygame_menu.themes.THEME_DARK
     )
     menu.add.button("New Game", new_game)
     menu.add.button("City Blocking", city_blocking)
+    menu.add.button("Field Merging", field_merging)
     menu.add.button("Quit", pygame_menu.events.EXIT)
     menu.mainloop(surface)
 
 
 def initialize_game():
-    GRID_SIZE = 50
-    GRID_BORDER = 0
-    MENU_WIDTH = 200
     DisplayScreen = pygameSettings.displayScreen(
         GRID, GRID_SIZE, GRID_BORDER, MENU_WIDTH, MEEPLE_SIZE
     )
     GAME_DISPLAY = DisplayScreen.pygameDisplay
     pygame.display.set_caption("Carcassonne Board Editor")
-
     Carcassonne = CarcassonneState(HumanPlayer(), HumanPlayer())
-
     tile_images = load_tile_images()
-
     return DisplayScreen, GAME_DISPLAY, Carcassonne, tile_images
 
 
@@ -113,49 +71,100 @@ def load_tile_images():
 
 
 def draw_tile_selection(GAME_DISPLAY, tile_images, current_tile_index, Carcassonne):
-    w, h = pygame.display.get_surface().get_size()
-    total_tile_width = TILES_PER_ROW * TILE_SIZE + (TILES_PER_ROW - 1) * MARGIN
-    start_x = w - total_tile_width - 2 * MARGIN
+    w, _ = pygame.display.get_surface().get_size()
+
+    # Calculate the dynamic X_PADDING to perfectly fit tiles within MENU_WIDTH
+    available_width = (
+        MENU_WIDTH - 4 * X_PADDING
+    )  # Space within the menu minus the left and right padding
+    total_tile_width = (
+        TILES_PER_ROW * EDITOR_TILE_SIZE
+    )  # Total width occupied by tiles without padding
+    dynamic_x_padding = (available_width - total_tile_width) / (TILES_PER_ROW - 1)
+
+    # Start x position for the first column of tiles
+    starting_x = w - MENU_WIDTH + 2 * X_PADDING
+    starting_y = Y_PADDING + 50
 
     for i in range(24):
         row = i // TILES_PER_ROW
         col = i % TILES_PER_ROW
-        x = start_x + (MARGIN + col * (TILE_SIZE + MARGIN))
-        y = Y_OFFSET + MARGIN + row * (TILE_SIZE + MARGIN)  # Added Y_OFFSET here
-        GAME_DISPLAY.blit(tile_images[i], (x, y))
 
+        # Calculate x and y positions based on padding
+        x = starting_x + col * (EDITOR_TILE_SIZE + dynamic_x_padding)
+        y = starting_y + row * (EDITOR_TILE_SIZE + Y_PADDING)
+
+        # Draw the tile
+        tile_image = pygame.transform.smoothscale(
+            tile_images[i], (EDITOR_TILE_SIZE, EDITOR_TILE_SIZE)
+        )
+        GAME_DISPLAY.blit(tile_image, (x, y))
+
+        # Highlight the current tile with a red border
         if i == current_tile_index:
             pygame.draw.rect(
                 GAME_DISPLAY,
                 (255, 0, 0),
-                (x - 2, y - 2, TILE_SIZE + 4, TILE_SIZE + 4),
+                (x, y, EDITOR_TILE_SIZE, EDITOR_TILE_SIZE),
                 2,
             )
 
+        # Display the tile count
         count = Carcassonne.TileQuantities[i]
-        font = pygame.font.Font(None, 24)
+        font = pygame.font.SysFont("timesnewroman", 18)
+        font.set_bold(True)
         text = font.render(str(count), True, BLACK)
-        GAME_DISPLAY.blit(text, (x + TILE_SIZE - 20, y + TILE_SIZE - 20))
+        GAME_DISPLAY.blit(text, (x + EDITOR_TILE_SIZE - 12, y + EDITOR_TILE_SIZE - 20))
+
+
+def get_clicked_tile(pos):
+    x, y = pos
+    w, _ = pygame.display.get_surface().get_size()
+
+    available_width = MENU_WIDTH - 4 * X_PADDING
+    total_tile_width = TILES_PER_ROW * EDITOR_TILE_SIZE
+    dynamic_x_padding = (available_width - total_tile_width) / (TILES_PER_ROW - 1)
+
+    # Start x position for the first column of tiles
+    starting_x = w - MENU_WIDTH + 2 * X_PADDING
+    starting_y = Y_PADDING + 50
+
+    for i in range(24):
+        row = i // TILES_PER_ROW
+        col = i % TILES_PER_ROW
+
+        # Calculate x and y positions based on dynamic padding
+        tile_x = starting_x + col * (EDITOR_TILE_SIZE + dynamic_x_padding)
+        tile_y = starting_y + row * (EDITOR_TILE_SIZE + Y_PADDING)
+
+        # Check if the click is within this tile's boundaries
+        if (
+            tile_x <= x < tile_x + EDITOR_TILE_SIZE
+            and tile_y <= y < tile_y + EDITOR_TILE_SIZE
+        ):
+            return i
+
+    return None
 
 
 def draw_current_tile(
     GAME_DISPLAY,
-    DisplayScreen,
     tile_images,
     current_tile_index,
     rotation,
 ):
     w, h = pygame.display.get_surface().get_size()
-    total_tile_width = TILES_PER_ROW * TILE_SIZE + (TILES_PER_ROW - 1) * MARGIN
-    start_x = w - total_tile_width - 2 * MARGIN
+    starting_x = w - MENU_WIDTH / 2
 
     rotated_image = pygame.transform.rotate(tile_images[current_tile_index], -rotation)
-    rotated_image = pygame.transform.scale_by(rotated_image, 1.5)
+    rotated_image = pygame.transform.smoothscale(
+        rotated_image, (TILE_PREVIEW_SIZE, TILE_PREVIEW_SIZE)
+    )
     GAME_DISPLAY.blit(
         rotated_image,
-        (  # bottom right of screen, up by 1.75x the size of the tile image
-            (w + start_x) / 2 - rotated_image.get_width() / 2,
-            h - 1.5 * rotated_image.get_height(),
+        (
+            starting_x - 0.5 * TILE_PREVIEW_SIZE,
+            h - 2 * rotated_image.get_height(),
         ),
     )
     font = pygame.font.Font(None, 30)
@@ -163,14 +172,10 @@ def draw_current_tile(
     GAME_DISPLAY.blit(
         text,
         (  # top of the tile image defined above
-            (w + start_x) / 2 - rotated_image.get_width() / 2 - text.get_width() / 4,
-            h - 1.75 * rotated_image.get_height(),
+            starting_x - 0.5 * text.get_width(),
+            h - 2.3 * rotated_image.get_height(),
         ),
     )
-
-    return (
-        w + start_x
-    ) / 2 - rotated_image.get_width() / 2 - text.get_width() / 4, h - 1.75 * rotated_image.get_height()
 
 
 def possibleCoordinatesMeeples(Carcassonne, Meeple, rotation, tile_index):
@@ -189,101 +194,70 @@ def possibleCoordinatesMeeples(Carcassonne, Meeple, rotation, tile_index):
     return coordinates
 
 
-def get_clicked_tile(pos):
-    x, y = pos
-    w, h = pygame.display.get_surface().get_size()
-    y_adjusted = y - Y_OFFSET
+def draw_current_player(GAME_DISPLAY, player):
 
-    # Calculate the total width of the tile selection area
-    total_tile_width = TILES_PER_ROW * TILE_SIZE + (TILES_PER_ROW - 1) * MARGIN
-    start_x = w - total_tile_width - 2 * MARGIN
+    # font settings for player turn label
+    font = pygame.font.SysFont("timesnewroman", 36)
+    font.set_bold(True)
+    player_name = players[player]  # Red or Blue
+    to_play_label = font.render(f"To Play: {player_name}", True, BLACK)
 
-    # Check if click is within tile selection area horizontally
-    if x < start_x or x > start_x + total_tile_width:
-        return None
-
-    # Calculate column and row
-    col = (x - start_x) // (TILE_SIZE + MARGIN)
-    row = y_adjusted // (TILE_SIZE + MARGIN)
-
-    # Calculate tile index
-    index = row * TILES_PER_ROW + col
-
-    # Ensure the index is within bounds
-    if 0 <= index < 24:
-        return index
-
-    return None
-
-
-def draw_current_player(GAME_DISPLAY, DisplayScreen, player, x, y):
-    y -= 50
-    label_width = 160
-    label_height = 30
-    font = pygame.font.Font(None, 36)
-    player_name = players[player]
-    save_text = font.render(f"To Play: {player_name}", True, BLACK)
-
-    to_play = pygame.draw.rect(
+    # set text background to correspond to their colour
+    pygame.draw.rect(
         GAME_DISPLAY,
-        player_colors[player_name],
+        colours[player_name.upper()],
         (
-            x + 5,
-            y,
-            label_width,
-            label_height,
+            0,
+            0,
+            to_play_label.get_width() + 10,
+            to_play_label.get_height() + 10,
         ),
     )
-
-    GAME_DISPLAY.blit(save_text, (x + 10, y))
-
-    return to_play
+    GAME_DISPLAY.blit(to_play_label, (5, 5))
 
 
-def draw_buttons(GAME_DISPLAY, DisplayScreen):
-    w, h = pygame.display.get_surface().get_size()
-    total_tile_width = TILES_PER_ROW * TILE_SIZE + (TILES_PER_ROW - 1) * MARGIN
-    start_x = w - total_tile_width - 2 * MARGIN
+def draw_buttons(GAME_DISPLAY):
+    window_width, window_height = pygame.display.get_surface().get_size()
+    starting_x = window_width - MENU_WIDTH / 2
 
+    # initialise save/load text
     font = pygame.font.Font(None, 36)
     save_text = font.render("Save", True, BLACK)
     load_text = font.render("Load", True, BLACK)
-
-    button_width = 80
-    button_height = 30
-    spacing = (
-        w - start_x - 2 * button_width
-    ) // 3  # Calculate spacing between buttons and the edges
-
-    save_x = start_x + spacing
-    load_x = save_x + button_width + spacing
+    # get text width/heights
+    save_text_width = save_text.get_width()
+    load_text_width = load_text.get_width()
+    text_height = save_text.get_height()
+    X_PADDING = 10
 
     save_rect = pygame.draw.rect(
         GAME_DISPLAY,
         (200, 200, 200),
         (
-            save_x,
-            DisplayScreen.Window_Height - button_height,
-            button_width,
-            button_height,
+            window_width - MENU_WIDTH + X_PADDING,
+            window_height - 2.5 * text_height - 5,
+            MENU_WIDTH - 2 * X_PADDING,
+            text_height,
         ),
     )
     load_rect = pygame.draw.rect(
         GAME_DISPLAY,
         (200, 200, 200),
         (
-            load_x,
-            DisplayScreen.Window_Height - button_height,
-            button_width,
-            button_height,
+            window_width - MENU_WIDTH + X_PADDING,
+            window_height - 1.5 * text_height,
+            MENU_WIDTH - 2 * X_PADDING,
+            text_height,
         ),
     )
 
     GAME_DISPLAY.blit(
-        save_text, (save_x + 12, DisplayScreen.Window_Height - button_height + 5)
+        save_text,
+        (starting_x - 0.5 * save_text_width - 5, window_height - 2.5 * text_height - 5),
     )
     GAME_DISPLAY.blit(
-        load_text, (load_x + 12, DisplayScreen.Window_Height - button_height + 5)
+        load_text,
+        (starting_x - 0.5 * load_text_width - 5, window_height - 1.5 * text_height),
     )
 
     return save_rect, load_rect
@@ -451,7 +425,7 @@ def playRandomMove(Carcassonne, player):
     print(f"Random move played by player {player}: {move}")
 
 
-def mainloop(board_state):
+def main(board_state):
     DisplayScreen, GAME_DISPLAY, Carcassonne, tile_images = initialize_game()
 
     # init tile
@@ -479,7 +453,7 @@ def mainloop(board_state):
 
     # init minimax player
     minimax_player = MinimaxPlayer(
-        max_depth=3, max_moves_to_consider=5, state=Carcassonne
+        max_depth=3, max_moves_to_consider=10, state=Carcassonne
     )
 
     while running:
@@ -503,12 +477,37 @@ def mainloop(board_state):
 
                 elif ai_search.collidepoint(event.pos):
                     print(f"Searching for best move...")
-                    eval, move, isBlocking = minimax_player.get_best_move(Carcassonne)
-                    blocks = "Blocks" if isBlocking else "Does not block"
+
+                    # [[City, Road, Monastery, City(Incomplete), Road(Incomplete), Monastery(Incomplete), Farms]]
+                    print(f"Live Scores: {Carcassonne.Scores[2:]}")
                     print(
-                        f"Move with a best score of {eval} was {move}. The move: {blocks} a city."
+                        f"Field score for player 0 (Blue): {Carcassonne.FeatureScores[0][6]}"
+                    )
+                    print(
+                        f"Field score for player 1 (Red): {Carcassonne.FeatureScores[1][6]}"
+                    )
+
+                    eval, move, isBlocking, isMerging = minimax_player.get_best_move(
+                        Carcassonne
+                    )
+                    blocks = "Blocks" if isBlocking else "Does not block"
+                    merged = "Merges" if isMerging else "Does not merge"
+                    print(
+                        f"""Move with a best score of {eval} was {move}. 
+                        Tactics:
+                            The move: {blocks} a city.
+                            The move: {merged} a field."""
                     )
                     Carcassonne.move(move)
+
+                    print(f"SCORES AFTER:")
+                    print(f"Scores: {Carcassonne.Scores}")
+                    print(
+                        f"Field score for player 0 (Blue): {Carcassonne.FeatureScores[0]}"
+                    )
+                    print(
+                        f"Field score for player 1 (Red): {Carcassonne.FeatureScores[1]}"
+                    )
 
                     player = 1 - player
                 else:
@@ -523,6 +522,8 @@ def mainloop(board_state):
                         X, Y = get_clicked_X(
                             pygame.mouse.get_pos(), DisplayScreen
                         ), get_clicked_Y(pygame.mouse.get_pos(), DisplayScreen)
+
+                        print(f"Scores: {Carcassonne.Scores}")
 
                         move_tuple = (current_tile_index, X, Y, rotation * 90, meeple)
                         count = Carcassonne.TileQuantities[current_tile_index]
@@ -605,15 +606,14 @@ def mainloop(board_state):
         drawGrid(DisplayScreen)
         diplayGameBoard(Carcassonne, DisplayScreen)
         draw_tile_selection(GAME_DISPLAY, tile_images, current_tile_index, Carcassonne)
-        x, y = draw_current_tile(
+        draw_current_tile(
             GAME_DISPLAY,
-            DisplayScreen,
             tile_images,
             current_tile_index,
             rotation * 90 % 360,
         )
-        draw_current_player(GAME_DISPLAY, DisplayScreen, player, x, y)
-        save_rect, load_rect = draw_buttons(GAME_DISPLAY, DisplayScreen)
+        draw_current_player(GAME_DISPLAY, player)
+        save_rect, load_rect = draw_buttons(GAME_DISPLAY)
         printTilesLeft(Carcassonne, DisplayScreen)
         highlightPossibleMoves(Carcassonne, current_tile_index, rotation, DisplayScreen)
         ai_search = draw_AI_move(GAME_DISPLAY, DisplayScreen)

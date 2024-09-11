@@ -1,19 +1,58 @@
 {
-    "name_mapping": {
-      "R": "Road",
-      "G": "Grass",
-      "C": "City",
-      "M": "Monastery"
-    },
-    "players": ["Blue", "Red"],
-    "player_colors": {
-      "Blue": [100, 100, 255],
-      "Red": [255, 100, 100]
-    },
-    "WHITE": [255, 255, 255],
-    "BLACK": [0, 0, 0],
-    "TILE_SIZE": 60,
+  "name_mapping": {
+    "R": "Road",
+    "G": "Grass",
+    "C": "City",
+    "M": "Monastery"
+  },
+  "players": ["Blue", "Red"],
+  "TILE_SIZE": 60,
+  "BLOCKING_MULTIPLIER": 0,
+  "MERGING_MULTIPLIER": 100,
+  "editor_settings": {
+    "EDITOR_TILE_SIZE": 70,
+    "TILE_PREVIEW_SIZE": 100,
     "TILES_PER_ROW": 3,
-    "MARGIN": 5,
-    "Y_OFFSET": 50
+    "X_PADDING": 10,
+    "Y_PADDING": 10
+  },
+  "game_grid": {
+    "GRID": [20, 16],
+    "GRID_SIZE": 60,
+    "GRID_WINDOW_WIDTH": 1200,
+    "GRID_WINDOW_HEIGHT": 960,
+    "GRID_BORDER": 0
+  },
+  "meeple": {
+    "MEEPLE_SIZE": 125,
+    "MEEPLE_LABEL_X": 40,
+    "MEEPLE_LABEL_Y": 50,
+    "MEEPLE_LABEL_SHIFT_X": 100,
+    "MEEPLE_LABEL_SHIFT_Y": 25,
+    "MEEPLE_CHOICE_HIGHLIGHT": [255, 0, 0]
+  },
+  "window": {
+    "WINDOW_HEIGHT": 960,
+    "WINDOW_WIDTH": 1600,
+    "MENU_WIDTH": 300
+  },
+  "font_sizes": {
+    "FONT_MEEPLE_IMAGE": 40,
+    "FONT_MEEPLE_MENU": 25
+  },
+  "colours": {
+    "BLACK": [0, 0, 0],
+    "GRAY": [127, 127, 127],
+    "WHITE": [255, 255, 255],
+    "RED": [255, 50, 50],
+    "GREEN": [0, 255, 0],
+    "BLUE": [50, 50, 255],
+    "YELLOW": [255, 255, 0],
+    "CYAN": [0, 255, 255],
+    "MAGENTA": [255, 0, 255],
+    "LIGHTGREEN": [0, 255, 0],
+    "DARK_GREEN": [0, 140, 0],
+    "COFFEEBROWN": [200, 190, 140],
+    "BROWN": [92, 64, 51]
   }
+}

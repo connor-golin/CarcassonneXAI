@@ -264,6 +264,8 @@ def PlayGame(p1, p2):
         printScores(Carcassonne, DisplayScreen)
         printTilesLeft(Carcassonne, DisplayScreen)
 
+        #print(f"Feature scores 0: {Carcassonne.FeatureScores[0]}, 1: {Carcassonne.FeatureScores[1]}")
+
         if not isGameOver:
             NT.showNextTile(DisplayScreen, rotation, newRotation)
             NT.showInfos(DisplayScreen)

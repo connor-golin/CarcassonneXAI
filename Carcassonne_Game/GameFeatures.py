@@ -164,19 +164,7 @@ class Farm:
         self.Meeples[0] += MeeplesAdded[0]
 
     def __repr__(self):
-        String = (
-            "Farm ID"
-            + str(self.ID)
-            + "Ptr"
-            + str(self.Pointer)
-            + "CI"
-            + str(self.CityIndexes)
-            + "Mps"
-            + str(self.Meeples[0])
-            + ","
-            + str(self.Meeples[1])
-        )
-        return String
+        return f"\nID={self.ID}, Pointer={self.Pointer}, CityIndexes={self.CityIndexes}, Meeples=Player1: {self.Meeples[0]}, Player2: {self.Meeples[1]}"
 
 
 class Road:
