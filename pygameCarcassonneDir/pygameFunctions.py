@@ -86,8 +86,8 @@ def drawGrid(DisplayScreen):
     # for loop for each grid sqaure
     for x in range(0, Grid_Window_Width, Grid_Size):
         for y in range(0, Grid_Window_Height, Grid_Size):
-            rect = pygame.Rect(x + Grid_border, y + Grid_border, Grid_Size, Grid_Size)
-            pygame.draw.rect(GAME_DISPLAY, WHITE, rect, 1)
+            rect = pygame.Rect(x + Grid_border, y + Grid_border, Grid_Size + 1, Grid_Size + 1)
+            pygame.draw.rect(GAME_DISPLAY, pygame.Color(0,0,0), rect, 1)
 
 
 def placeColourTile(x, y, DisplayScreen, COLOUR):
@@ -262,9 +262,7 @@ def printTilesLeft(Carcassonne, displayScreen, *args):
 
     # rectangular surface
     rect = (0, 0, Menu_Width, 40)
-    label = pygame.Surface(pygame.Rect(rect).size)
-    label.set_alpha(165)
-    pygame.draw.rect(label, BROWN, label.get_rect(), 10)
+    label = pygame.Surface(pygame.Rect(rect).size, pygame.SRCALPHA)
     width = (label.get_rect().size)[0]
     height = (label.get_rect().size)[1]
 

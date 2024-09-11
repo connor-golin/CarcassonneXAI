@@ -84,7 +84,7 @@ def draw_tile_selection(GAME_DISPLAY, tile_images, current_tile_index, Carcasson
 
     # Start x position for the first column of tiles
     starting_x = w - MENU_WIDTH + 2 * X_PADDING
-    starting_y = Y_PADDING + 50
+    starting_y = Y_PADDING + 30
 
     for i in range(24):
         row = i // TILES_PER_ROW
@@ -168,12 +168,12 @@ def draw_current_tile(
         ),
     )
     font = pygame.font.Font(None, 30)
-    text = font.render(f"Selected: Tile {current_tile_index}", True, BLACK)
+    text = font.render(f"Selected: Tile {current_tile_index}", True, WHITE)
     GAME_DISPLAY.blit(
         text,
         (  # top of the tile image defined above
             starting_x - 0.5 * text.get_width(),
-            h - 2.3 * rotated_image.get_height(),
+            h - 2 * rotated_image.get_height() - 30,
         ),
     )
 
@@ -599,11 +599,12 @@ def main(board_state):
 
                     meeple = keys[meeple]
 
-        GAME_DISPLAY.fill(WHITE)
+        GAME_DISPLAY.fill(GREY)
 
         # playRandomMove(Carcassonne, player)
 
         drawGrid(DisplayScreen)
+
         diplayGameBoard(Carcassonne, DisplayScreen)
         draw_tile_selection(GAME_DISPLAY, tile_images, current_tile_index, Carcassonne)
         draw_current_tile(

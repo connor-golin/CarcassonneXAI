@@ -18,6 +18,7 @@ colours: Dict[str, Tuple[int, int, int]] = {k: tuple(v) for k, v in config["colo
 WHITE = colours["WHITE"]
 BLACK = colours["BLACK"]
 CYAN = colours['CYAN']
+GREY = colours['GREY']
 TILE_SIZE: int = config["TILE_SIZE"]
 
 # Constants for pygameNextTile and pygameSettings

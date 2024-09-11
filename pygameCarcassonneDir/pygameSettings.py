@@ -61,7 +61,7 @@ class displayScreen:
         self.Grid_border = Grid_border
         self.Menu_Width = Menu_Width
         self.Meeple_Size = Meeple_Size
-        
+
         # grid size
         self.Grid_Window_Width = Grid[0] * Grid_Size
         self.Grid_Window_Height = Grid[1] * Grid_Size

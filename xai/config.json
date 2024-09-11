@@ -11,7 +11,7 @@
   "MERGING_MULTIPLIER": 100,
   "editor_settings": {
     "EDITOR_TILE_SIZE": 70,
-    "TILE_PREVIEW_SIZE": 100,
+    "TILE_PREVIEW_SIZE": 110,
     "TILES_PER_ROW": 3,
     "X_PADDING": 10,
     "Y_PADDING": 10
@@ -42,7 +42,7 @@
   },
   "colours": {
     "BLACK": [0, 0, 0],
-    "GRAY": [127, 127, 127],
+    "GREY": [25, 25, 25],
     "WHITE": [255, 255, 255],
     "RED": [255, 50, 50],
     "GREEN": [0, 255, 0],
