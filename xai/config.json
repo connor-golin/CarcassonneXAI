@@ -7,8 +7,8 @@
   },
   "players": ["Blue", "Red"],
   "TILE_SIZE": 60,
-  "BLOCKING_MULTIPLIER": 0,
-  "MERGING_MULTIPLIER": 100,
+  "BLOCKING_MULTIPLIER": 100,
+  "MERGING_MULTIPLIER": 0,
   "editor_settings": {
     "EDITOR_TILE_SIZE": 70,
     "TILE_PREVIEW_SIZE": 110,

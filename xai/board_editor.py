@@ -17,12 +17,13 @@ from pygameCarcassonneDir.pygameFunctions import (
     printTilesLeft,
 )
 from pygameCarcassonneDir.pygameLabel import Label
-from pygameCarcassonneDir import pygameNextTile, pygameSettings
+from pygameCarcassonneDir import pygameSettings
 from Carcassonne_Game.Carcassonne import CarcassonneState
 from Carcassonne_Game.Tile import Tile
 from player.Player import HumanPlayer
 from xai.search import MinimaxPlayer
 from load_config import *  # import all config.json variables
+from xai.explainer import Explainer
 
 # Initialize Pygame
 pygame.init()
@@ -453,7 +454,7 @@ def main(board_state):
 
     # init minimax player
     minimax_player = MinimaxPlayer(
-        max_depth=3, max_moves_to_consider=10, state=Carcassonne
+        max_depth=2, max_moves_to_consider=50, state=Carcassonne
     )
 
     while running:
@@ -473,7 +474,7 @@ def main(board_state):
                         print("Game state loaded.")
                     else:
                         print("Failed to load game state.")
-                        mainloop()
+                        main()
 
                 elif ai_search.collidepoint(event.pos):
                     print(f"Searching for best move...")
@@ -498,16 +499,22 @@ def main(board_state):
                             The move: {blocks} a city.
                             The move: {merged} a field."""
                     )
-                    Carcassonne.move(move)
 
-                    print(f"SCORES AFTER:")
-                    print(f"Scores: {Carcassonne.Scores}")
-                    print(
-                        f"Field score for player 0 (Blue): {Carcassonne.FeatureScores[0]}"
-                    )
-                    print(
-                        f"Field score for player 1 (Red): {Carcassonne.FeatureScores[1]}"
-                    )
+                    explainer = Explainer(model='llama3.1')
+                    explanation = explainer.explain_move(Carcassonne, move, eval, isBlocking, isMerging)
+
+                    print(f"Explanation: {explanation}")   
+
+                    # Carcassonne.move(move)
+
+                    # print(f"SCORES AFTER:")
+                    # print(f"Scores: {Carcassonne.Scores}")
+                    # print(
+                    #     f"Field score for player 0 (Blue): {Carcassonne.FeatureScores[0]}"
+                    # )
+                    # print(
+                    #     f"Field score for player 1 (Red): {Carcassonne.FeatureScores[1]}"
+                    # )
 
                     player = 1 - player
                 else:
