@@ -138,7 +138,7 @@ class City:
         return list(openings)
 
     def __repr__(self):
-        return f"""ID={self.ID}, Pointer={self.Pointer}, Value={self.Value}, Openings={self.Openings}, Meeples=Player1: {self.Meeples[0]}, Player2: {self.Meeples[1]}, Closed={self.ClosedFlag}, Blocked={self.isBlocked}, tiles={self.tiles}"""
+        return f"""City {self.ID}: P:{self.Pointer}, V:{self.Value}, O:{self.Openings}, Meeples [{self.Meeples[0]}, {self.Meeples[1]}], Closed={self.ClosedFlag}, Tiles={self.tiles}"""
 
 
 class Farm:

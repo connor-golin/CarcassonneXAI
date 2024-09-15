@@ -454,10 +454,13 @@ def main(board_state):
 
     # init minimax player
     minimax_player = MinimaxPlayer(
-        max_depth=2, max_moves_to_consider=50, state=Carcassonne
+        max_depth=1, max_moves_to_consider=1000
     )
 
+    highlighted_coordinates = set()
+
     while running:
+
         rotation = rotation % 4
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -479,15 +482,6 @@ def main(board_state):
                 elif ai_search.collidepoint(event.pos):
                     print(f"Searching for best move...")
 
-                    # [[City, Road, Monastery, City(Incomplete), Road(Incomplete), Monastery(Incomplete), Farms]]
-                    print(f"Live Scores: {Carcassonne.Scores[2:]}")
-                    print(
-                        f"Field score for player 0 (Blue): {Carcassonne.FeatureScores[0][6]}"
-                    )
-                    print(
-                        f"Field score for player 1 (Red): {Carcassonne.FeatureScores[1][6]}"
-                    )
-
                     eval, move, isBlocking, isMerging = minimax_player.get_best_move(
                         Carcassonne
                     )
@@ -499,22 +493,12 @@ def main(board_state):
                             The move: {blocks} a city.
                             The move: {merged} a field."""
                     )
+                    Carcassonne.move(move)
 
+                    ### LLAMA3 Explainer
                     explainer = Explainer(model='llama3.1')
                     explanation = explainer.explain_move(Carcassonne, move, eval, isBlocking, isMerging)
-
-                    print(f"Explanation: {explanation}")   
-
-                    # Carcassonne.move(move)
-
-                    # print(f"SCORES AFTER:")
-                    # print(f"Scores: {Carcassonne.Scores}")
-                    # print(
-                    #     f"Field score for player 0 (Blue): {Carcassonne.FeatureScores[0]}"
-                    # )
-                    # print(
-                    #     f"Field score for player 1 (Red): {Carcassonne.FeatureScores[1]}"
-                    # )
+                    print(explanation)   
 
                     player = 1 - player
                 else:
@@ -625,6 +609,12 @@ def main(board_state):
         printTilesLeft(Carcassonne, DisplayScreen)
         highlightPossibleMoves(Carcassonne, current_tile_index, rotation, DisplayScreen)
         ai_search = draw_AI_move(GAME_DISPLAY, DisplayScreen)
+
+        for colour, x, y in highlighted_coordinates:
+            placeColourTile(x, y, DisplayScreen, pygame.Color(colour))
+
+
+
         pygame.display.flip()
 
         if Carcassonne.isGameOver:

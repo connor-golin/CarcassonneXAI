@@ -1,4 +1,3 @@
-from collections import defaultdict
 import json
 
 # Load config file
@@ -10,7 +9,7 @@ BLOCKING_MULTIPLIER: int = config["BLOCKING_MULTIPLIER"]
 MERGING_MULTIPLIER: int = config["MERGING_MULTIPLIER"]
 
 class MinimaxPlayer:
-    def __init__(self, max_depth, max_moves_to_consider, state):
+    def __init__(self, max_depth, max_moves_to_consider):
         # initialize player and opponent
         self.max_depth = max_depth
         self.max_moves_to_consider = max_moves_to_consider
@@ -29,14 +28,13 @@ class MinimaxPlayer:
 
         # get best move using minimax
         best_score, best_move, is_blocking, is_merging = self.minimax(
-            state, self.max_depth, float("-inf"), float("inf"), True
+            state, state, self.max_depth, float("-inf"), float("inf"), True
         )
         return best_score, best_move, is_blocking, is_merging
 
-    def minimax(self, state, depth, alpha, beta, maximizing_player):
+    def minimax(self, state_before_move, state, depth, alpha, beta, maximizing_player):
         if depth == 0 or state.isGameOver:
-            # evaluate score and blocking
-            eval_score, blocking_score, merging_score = self.evaluate(state)
+            eval_score, blocking_score, merging_score = self.evaluate(state_before_move, state)
             return eval_score, None, blocking_score > 0, merging_score > 0
 
         best_move = None
@@ -71,7 +69,7 @@ class MinimaxPlayer:
                 new_state.move(move_tuple)
 
                 eval, mv, move_blocking, move_merging = self.minimax(
-                    new_state, depth - 1, alpha, beta, False
+                    state, new_state, depth - 1, alpha, beta, False
                 )
                 if eval > max_eval:
                     max_eval = eval
@@ -98,7 +96,7 @@ class MinimaxPlayer:
                 new_state.move(move_tuple)
 
                 eval, mv, move_blocking, move_merging = self.minimax(
-                    new_state, depth - 1, alpha, beta, True
+                    state, new_state, depth - 1, alpha, beta, True
                 )
                 if eval < min_eval:
                     min_eval = eval
@@ -110,54 +108,62 @@ class MinimaxPlayer:
                     break
             return min_eval, best_move, is_blocking, is_merging
 
-    def evaluate(self, state):
-        # calculate score difference and blocking score
-        score_diff = state.Scores[self.player] - state.Scores[self.opponent]
-        blocking_score = self.evaluate_blocking(state) * BLOCKING_MULTIPLIER
-        is_winning_farms, merging_score = self.evaluate_merging(state)
-
-        if is_winning_farms:
-            merging_score += 100
+    def evaluate(self, state_before_move, state_after_move):
+        # Calculate score difference and blocking score
+        score_diff = state_after_move.Scores[self.player] - state_after_move.Scores[self.opponent]
+        blocking_score = self.evaluate_blocking(state_after_move) * BLOCKING_MULTIPLIER
+        merging_score = self.evaluate_merging(state_before_move, state_after_move) * MERGING_MULTIPLIER
 
         total = score_diff + blocking_score + merging_score
         return total, blocking_score, merging_score
 
-    def evaluate_merging(self, state):
-        # Count meeples in fields for each player
-        player_field_score = 0
-        opponent_field_score = 0
+    def evaluate_merging(self, state_before_move, state_after_move):
+        merging_score = 0
 
-        farmP1 = 3 * sum(
-            [
-                len([x for x in v.CityIndexes if state.BoardCities[x].ClosedFlag])
-                for k, v in state.BoardFarms.items()
-                if v.Pointer == v.ID
-                and v.Meeples[0] >= v.Meeples[1]
-                and v.Meeples[0] > 0
-            ]
-        )
-        farmP2 = 3 * sum(
-            [
-                len([x for x in v.CityIndexes if state.BoardCities[x].ClosedFlag])
-                for k, v in state.BoardFarms.items()
-                if v.Pointer == v.ID
-                and v.Meeples[1] >= v.Meeples[0]
-                and v.Meeples[1] > 0
-            ]
-        )
+        # IDs : owner in the before state
+        field_owners_before = self.get_field_owners(state_before_move)
+        # IDs : owner in the after state
+        field_owners_after = self.get_field_owners(state_after_move)
 
-        if self.player == 0:
-            player_field_score += farmP1
-            opponent_field_score += farmP2
-        else:
-            player_field_score += farmP2
-            opponent_field_score += farmP1
+        # Compare field ownerships to detect changes
+        for field_id, owner_after in field_owners_after.items():
+            owner_before = field_owners_before.get(field_id)
+            if owner_before and owner_before != owner_after:
+                # Ownership has changed
+                if (owner_before == 'opponent' and owner_after == 'player') or (owner_before == 'opponent' and owner_after == 'tie'):
+                    # We have gained control over a field
+                    field = state_after_move.BoardFarms[field_id]
+                    field_value = 3 * len([
+                        x for x in field.CityIndexes
+                        if state_after_move.BoardCities[x].ClosedFlag
+                    ])
+                    merging_score += field_value
+                elif owner_before == 'player' and owner_after == 'opponent':
+                    # We have lost control over a field
+                    field = state_after_move.BoardFarms[field_id]
+                    field_value = 3 * len([
+                        x for x in field.CityIndexes
+                        if state_after_move.BoardCities[x].ClosedFlag
+                    ])
+                    merging_score -= field_value
 
-        # Evaluate merging potential based on meeple difference
-        field_score_difference = player_field_score - opponent_field_score
+        return merging_score
 
-        is_winning_farms = field_score_difference > 0
-        return abs(field_score_difference), is_winning_farms
+    def get_field_owners(self, state):
+        field_owners = {}
+        for field_id, field in state.BoardFarms.items():
+            # Resolve farm pointers
+            while field.Pointer != field.ID:
+                field = state.BoardFarms[field.Pointer]
+            player_meeples = field.Meeples[self.player]
+            opponent_meeples = field.Meeples[self.opponent]
+            if player_meeples > opponent_meeples:
+                field_owners[field_id] = 'player'
+            elif opponent_meeples > player_meeples:
+                field_owners[field_id] = 'opponent'
+            else:
+                field_owners[field_id] = 'tie'
+        return field_owners
 
     def evaluate_blocking(self, state):
         blocking_score = 0
@@ -180,10 +186,11 @@ class MinimaxPlayer:
 
         return blocking_score
 
-    def evaluate_move(self, state, move):
-        # evaluate move by simulating it
-        temp_state = state.CloneState()
+    def evaluate_move(self, state_before_move, move):
+        # Simulate the move
+        temp_state = state_before_move.CloneState()
         move_tuple = (move.TileIndex, move.X, move.Y, move.Rotation, move.MeepleInfo)
         temp_state.move(move_tuple)
 
-        return self.evaluate(temp_state)
+        # Pass both states to the evaluate function
+        return self.evaluate(state_before_move, temp_state)

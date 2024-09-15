@@ -554,6 +554,13 @@ class CarcassonneState:
             )
             roadClosures(self, ClosingRoads)
 
+    def find_root_farm(self, farm_index):
+        # Find the root of the farm with path compression
+        if self.BoardFarms[farm_index].Pointer != farm_index:
+            # Recursively find the root and compress the path
+            self.BoardFarms[farm_index].Pointer = self.find_root_farm(self.BoardFarms[farm_index].Pointer)
+        return self.BoardFarms[farm_index].Pointer
+
     def checkFarmCompleteness(self, PlayingTile, Surroundings, MeepleUpdate, MeepleKey):
         """
         Check if farm has been completed

@@ -90,7 +90,7 @@ def drawGrid(DisplayScreen):
             pygame.draw.rect(GAME_DISPLAY, pygame.Color(0,0,0), rect, 1)
 
 
-def placeColourTile(x, y, DisplayScreen, COLOUR):
+def placeColourTile(x, y, DisplayScreen, COLOUR, *args):
     # display constants
     Grid_Window_Width = DisplayScreen.Grid_Window_Width
     Grid_Window_Height = DisplayScreen.Grid_Window_Height
@@ -115,7 +115,7 @@ def placeColourTile(x, y, DisplayScreen, COLOUR):
     # draw rectangle
     rect = (X, Y, Grid_Size, Grid_Size)
     rect_surf = pygame.Surface(pygame.Rect(rect).size)
-    rect_surf.set_alpha(150)
+    rect_surf.set_alpha(150) if not args else rect_surf.set_alpha(args[0])
     pygame.draw.rect(rect_surf, COLOUR, rect_surf.get_rect())
     GAME_DISPLAY.blit(rect_surf, rect)
 

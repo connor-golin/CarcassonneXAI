@@ -7,8 +7,8 @@
   },
   "players": ["Blue", "Red"],
   "TILE_SIZE": 60,
-  "BLOCKING_MULTIPLIER": 100,
-  "MERGING_MULTIPLIER": 0,
+  "BLOCKING_MULTIPLIER": 5,
+  "MERGING_MULTIPLIER": 5,
   "editor_settings": {
     "EDITOR_TILE_SIZE": 70,
     "TILE_PREVIEW_SIZE": 110,
@@ -24,7 +24,7 @@
     "GRID_BORDER": 0
   },
   "meeple": {
-    "MEEPLE_SIZE": 125,
+    "MEEPLE_SIZE": 30,
     "MEEPLE_LABEL_X": 40,
     "MEEPLE_LABEL_Y": 50,
     "MEEPLE_LABEL_SHIFT_X": 100,
