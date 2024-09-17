@@ -6,6 +6,7 @@ from PyQt6.QtGui import QTextCursor, QColor, QFont, QPalette
 from PyQt6.QtCore import pyqtSignal, QObject, QThread, Qt
 from markdown2 import Markdown
 
+# File to test LLAMA 3.1:8B model
 class StreamWorker(QObject):
     finished = pyqtSignal()
     progress = pyqtSignal(str)

@@ -1,5 +1,9 @@
+import json
+import os
 import random as rd
 import itertools as it
+import time
+import uuid
 
 from Carcassonne_Game.Tile import Tile, ROTATION_DICT, SIDE_CHANGE_DICT, AvailableMove
 from Carcassonne_Game.GameFeatures import Monastery
@@ -113,7 +117,13 @@ class CarcassonneState:
             Shuffled order of self.TileIndexList
     """
 
-    def __init__(self, p1, p2, RunInit=True, no_farms=False, no_monasteries=False):
+    def __init__(self, p1, p2, RunInit=True, no_farms=False, no_monasteries=False, is_simulation=False):
+
+        self.uuid = str(uuid.uuid4())
+        self.timestamp = time.time()
+        self.gameplay_data = []
+        self.gameplay_data.append({'timestamp': self.timestamp, 'game_id': self.uuid})
+        self.is_simulation = is_simulation
 
         # players
         self.p1 = p1
@@ -385,6 +395,7 @@ class CarcassonneState:
             RunInit=False,
             no_farms=self.no_farms,
             no_monasteries=self.no_monasteries,
+            is_simulation=True # Is simulation
         )
         Clone.Board = {k: v.CloneTile() for k, v in self.Board.items()}
         Clone.BoardCities = {k: v.CloneCity() for k, v in self.BoardCities.items()}
@@ -751,6 +762,11 @@ class CarcassonneState:
 
         # update virtual scores
         self.UpdateVirtualScores()
+
+        # collect data after processing move
+        # if not self.is_simulation: # dont collect MCTS tree states
+        #     self.collect_move_data(Move)
+
         # check if game is over
         if self.TotalTiles == 0:
             self.EndGameRoutine()
@@ -760,11 +776,169 @@ class CarcassonneState:
         self.playerSymbol = 3 - self.playerSymbol  # switch turn
         self.Turn += 1  # increment turns
 
+    def collect_move_data(self, Move):
+        """
+        Collects detailed game state data after each move for analysis.
+        """
+
+        if self.is_simulation:
+            return
+
+        # Extract move details
+        PlayingTileIndex = Move[0]
+        X, Y = Move[1], Move[2]
+        Rotation = Move[3]
+        MeepleKey = Move[4]
+
+        # Ensure MeepleKey is serializable
+        meeple_placement = None
+        if MeepleKey is not None:
+            # Convert MeepleKey to a serializable format
+            meeple_placement = {
+                'feature': MeepleKey[0],
+                'position': MeepleKey[1],
+            }
+
+        # The player who just made the move
+        current_player_symbol = self.playerSymbol
+        current_player = 'player1' if current_player_symbol == 1 else 'player2'
+
+        # Capture the current game state
+        game_state_snapshot = {
+            'turn': self.Turn,
+            'player': current_player,
+            'move': {
+                'tile_index': PlayingTileIndex,
+                'position': [X, Y],
+                'rotation': Rotation,
+                'meeple': meeple_placement
+            },
+            'scores': {
+                'player1': self.Scores[0],
+                'player2': self.Scores[1]
+            },
+            'meeples_remaining': {
+                'player1': self.Meeples[0],
+                'player2': self.Meeples[1]
+            },
+            'available_spots': [list(pos) for pos in self.AvailableSpots],
+            'total_tiles_remaining': self.TotalTiles,
+            'board_state': self.get_board_state(),
+            'cities_state': self.get_cities_state(),
+            'roads_state': self.get_roads_state(),
+            'farms_state': self.get_farms_state(),
+            'monasteries_state': self.get_monasteries_state(),
+        }
+
+        self.gameplay_data.append(game_state_snapshot)
+
+    def get_board_state(self):
+        """
+        Returns a serialized version of the current board state.
+        """
+        board_state = {}
+        for position, tile in self.Board.items():
+            position_key = f"{position[0]},{position[1]}"
+            # Ensure tile.Meeple is serializable
+            meeple_data = None
+            if tile.Meeple:
+                meeple_data = {
+                    'feature': tile.Meeple[0],
+                    'position': tile.Meeple[1],
+                    'player': tile.Meeple[2],
+                }
+            board_state[position_key] = {
+                'tile_index': tile.TileIndex,
+                'rotation': tile.Rotation,
+                'meeple': meeple_data,
+            }
+        return board_state
+
+    def get_cities_state(self):
+        """
+        Returns a serialized version of the current cities state.
+        """
+        cities_state = {}
+        for city_id, city in self.BoardCities.items():
+            cities_state[str(city_id)] = {
+                'id': city.ID,
+                'pointer': city.Pointer,
+                'openings': city.Openings,
+                'value': city.Value,
+                'meeples': city.Meeples.copy(),
+                'closed_flag': city.ClosedFlag,
+                'blocked': city.blocked,
+                'tiles': [f"{tile.coordinates[0]},{tile.coordinates[1]}" for tile in city.tiles],
+            }
+        return cities_state
+
+    def get_roads_state(self):
+        """
+        Returns a serialized version of the current roads state.
+        """
+        roads_state = {}
+        for road_id, road in self.BoardRoads.items():
+            roads_state[str(road_id)] = {
+                'id': road.ID,
+                'pointer': road.Pointer,
+                'openings': road.Openings,
+                'value': road.Value,
+                'meeples': road.Meeples.copy(),
+            }
+        return roads_state
+
+    def get_farms_state(self):
+        """
+        Returns a serialized version of the current farms state.
+        """
+        farms_state = {}
+        for farm_id, farm in self.BoardFarms.items():
+            farms_state[str(farm_id)] = {
+                'id': farm.ID,
+                'pointer': farm.Pointer,
+                'city_indexes': list(farm.CityIndexes),
+                'meeples': farm.Meeples.copy(),
+            }
+        return farms_state
+
+    def get_monasteries_state(self):
+        """
+        Returns a serialized version of the current monasteries state.
+        """
+        monasteries_state = {}
+        for monastery_id, monastery in self.BoardMonasteries.items():
+            monasteries_state[str(monastery_id)] = {
+                'id': monastery.ID,
+                'owner': monastery.Owner,
+                'value': monastery.Value,
+            }
+        return monasteries_state
+
+
+
+    def save_gameplay_data(self, data_directory='gameplay_data'):
+        if self.is_simulation:
+            return
+
+        # Create a directory to store gameplay data if it doesn't exist
+        if not os.path.exists(data_directory):
+            os.makedirs(data_directory)
+
+        # Generate a unique filename using UUID
+        outcome = 'draw' if self.winner == 0 else f'player{self.winner}_wins'
+        filename = os.path.join(data_directory, f'game_{self.uuid}_{outcome}.json')
+
+        # Save the gameplay data to a JSON file
+        with open(filename, 'w') as f:
+            json.dump(self.gameplay_data, f, indent=4)
+
     def EndGameRoutine(self):
         """
         Logic to handle when game is finished
         Declares self.winner and self.result
         """
+
+        # print(f"EndGameRoutine called at turn {self.Turn}")
 
         # game is finished
         self.isGameOver = True
@@ -783,6 +957,10 @@ class CarcassonneState:
             self.winner = 0  # Draw
 
         self.result = self.Scores[2] - self.Scores[3]
+
+        # save gameplay data to file
+        if not self.is_simulation:
+            self.save_gameplay_data()
 
     def doesTileFit(self, EvaluatedTile, Rotation, SurroundingSpots):
         """

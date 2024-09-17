@@ -1,3 +1,5 @@
 logs/
 */__pycache__
 .venv
+gameplay_data
+analysis_output

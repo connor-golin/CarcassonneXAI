@@ -493,7 +493,7 @@ def main(board_state):
                             The move: {blocks} a city.
                             The move: {merged} a field."""
                     )
-                    Carcassonne.move(move)
+                    # Carcassonne.move(move)
 
                     ### LLAMA3 Explainer
                     explainer = Explainer(model='llama3.1')

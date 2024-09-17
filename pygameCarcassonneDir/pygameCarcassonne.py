@@ -57,8 +57,9 @@ NumKeys = [
 PLAYERS = [
     ("Human", HumanPlayer()),
     ("Random", RandomPlayer()),
-    ("MCTS", MCTSPlayer(isTimeLimited=False, timeLimit=5)),
-    ("RAVE", MCTS_RAVEPlayer(isTimeLimited=True, timeLimit=5)),
+    ("MCTS", MCTSPlayer(iterations=200,isTimeLimited=False, timeLimit=5)),
+    ("RAVE", MCTS_RAVEPlayer(isTimeLimited=False, timeLimit=5)),
+    ("MCTS_ES", MCTS_ES_Player(iterations=200,isTimeLimited=False, timeLimit=5)),
 ]
 
 PLAYER1 = [HumanPlayer()]

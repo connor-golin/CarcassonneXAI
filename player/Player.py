@@ -197,8 +197,8 @@ class RandomPlayer(Player):
         """
         Make a random move from all possible actions
         """
-        if (state.Turn % 10 == 0):
-            print(f'({self.name})   TimeTaken: 0 secs  -  Turn: {state.Turn}  -  Time:{time.strftime("%H:%M:%S", time.localtime())}')
+        # if (state.Turn % 10 == 0):
+        #     print(f'({self.name})   TimeTaken: 0 secs  -  Turn: {state.Turn}  -  Time:{time.strftime("%H:%M:%S", time.localtime())}')
         
         return state.getRandomMove().move
     

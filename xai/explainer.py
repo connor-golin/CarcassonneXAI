@@ -1,21 +1,22 @@
+from Carcassonne_Game.Tile_dict import TILE_DESC_DICT
 import ollama
 
-MOVE_PROMPT = """
-It's my turn, and I'm not sure what I should do in Carcassonne.
-"""
-
 SYSTEM_PROMPT = """
-You are an enthusiastic Carcassonne expert, and your task is to explain the reasoning behind a move. Keep the explanation fun, engaging, and concise, while hinting at why this move might be strategic. Avoid revealing any specific game mechanics like tile rotation or evaluation scores.
-The user likes riddles, so try to make the explanation sound like a puzzle they need to solve - but don't make it too hard!
-Be concise with your response.
+You are an enthusiastic Carcassonne expert, and your task is to hint at potential tactics or strategies currently present, based on a move that only you know about. 
+Keep the explanation engaging and concise, while subtly suggesting that there may be a tactic or strategic move available if there is one mentioned in the provided move. 
+Avoid revealing any specific game mechanics like tile rotation or evaluation scores.
 
 Guidelines:
-- If the move blocks an opponent’s progress, suggest it might be aimed at limiting future options.
-- If the move expands or connects areas, hint that it could be setting up a bigger play down the line.
-- Keep the tone lively and friendly, making the player feel like they're discovering the strategy on their own.
-- Avoid mentioning specific rotations or move evaluations, but hint that a good opportunity is present.
+- If the secret move has potential to block an opponent's progress, subtly hint at ways to impede your opponent's plans.
+- If the secret move could merge or affect farms, gently remind them about the importance of farmers and late-game scoring.
+- Keep the tone friendly and encouraging, as if the player is on the verge of discovering a clever strategy.
+- Don't mention specific rotations or move evaluations, but suggest that an opportunity may be present: e.g. "Your position looks good for a strategic play" etc.
+- Focus on the potential for blocking or merging/stealing farmland if applicable to the secret move.
+- Do not ask any questions following your explanation.
+- Remember, the user does not know the tile or move you have been given. Your role is to suggestively guide them towards discovering it themselves.
+- If the secret move doesn't suggest any specific tactics or strategies, provide general strategic advice for Carcassonne.
 
-Here is a potentially strategic move that you can explain:
+Based on the current game state, here's the secret move to consider (but not reveal directly):
 """
 
 class Explainer:
@@ -23,24 +24,24 @@ class Explainer:
         self.model = model
 
     def explain_move(self, state, move, eval, isBlocking, isMerging):
-        move_string = f"Tile Index: {move[0]} to coordinates ({move[1]}, {move[2]}) with rotation {move[3]}, meeple: {move[4]}"
+        tile_description = TILE_DESC_DICT[move[0]]
+        move_string = f"Tile Description: {tile_description}, Coordinates ({move[1]}, {move[2]}), Rotation {move[3]}, Meeple: {move[4]}"
         move_description = f"""
-        This is a move which may be strategic in the game of Carcassonne. Here are the details:
         Move: {move_string}
         Evaluation score: {eval}
         Tactics:
-        - Blocking: {"Yes" if isBlocking else "No"}
-        - Merging: {"Yes" if isMerging else "No"}
+        - Can block an opponent's city: {"True" if isBlocking else "False"}
+        - Can merge or steal an opponent's farmland: {"True" if isMerging else "False"}
         """
 
         response = ollama.chat(model=self.model, messages=[
             {
                 'role': 'system',
-                'content': f'{SYSTEM_PROMPT}\n{move_description}',
+                'content': f'{SYSTEM_PROMPT} {move_description}',
             },
             {
                 'role': 'user',
-                'content': f'{MOVE_PROMPT}',
+                'content': f"I'm not sure what I should be doing for my move in Carcassonne. Can you give me a hint?"
             }
         ])
         
